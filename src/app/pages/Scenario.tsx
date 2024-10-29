@@ -92,6 +92,101 @@ export const Scenario = () => {
           }
         ]
     }
+
+    const throughputQueryResult: QueryResult = 
+    {
+        "records": [
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:20:45.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:00.000000000+08:00",
+            "throughput": 0.2
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:30.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:00.000000000+08:00",
+            "throughput": 0.6
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:30.000000000+08:00",
+            "throughput": 0.6
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:00.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:30.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:45.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:00.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:15.000000000+08:00",
+            "throughput": 0.2
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:30.000000000+08:00",
+            "throughput": 1
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:25:00.000000000+08:00",
+            "throughput": 0.2
+          }
+        ],
+        "metadata": {},
+        "types": [
+          {
+            "mappings": {
+              "bin(start_time, 15s)": {
+                "type": FieldTypeType.Timestamp
+              },
+              "throughput": {
+                "type": FieldTypeType.Double
+              }
+            },
+            "indexRange": [
+              0,
+              17
+            ]
+          }
+        ]
+      }
     
 
     return (
@@ -109,12 +204,12 @@ export const Scenario = () => {
                     <Flex flexDirection="column">                 
                         <TimeseriesChart data={cpuUsage}></TimeseriesChart>
                     </Flex>
-                </Tab>
+                </Tab> */}
                 <Tab title="Throughput">
                     <Flex flexDirection="column">
-                        <TimeseriesChart data={cpuUsage}></TimeseriesChart>
+                        <TimeseriesChart data={convertToTimeseries(throughputQueryResult.records, throughputQueryResult.types)} variant="bar"></TimeseriesChart>
                     </Flex>
-                </Tab> */}
+                </Tab>
             </Tabs>
         </Flex>
     )
