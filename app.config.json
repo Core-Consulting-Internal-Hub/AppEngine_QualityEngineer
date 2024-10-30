@@ -7,6 +7,8 @@
     "id": "my.qe.app.engine",
     "scopes": [{ "name": "storage:logs:read", "comment": "default template" }, { "name": "storage:buckets:read", "comment": "default template" },
     { "name": "storage:metrics:read", "comment": "Allows to read metrics" },
-    { "name": "storage:entities:read", "comment": "Allows to read entities" }]
+    { "name": "storage:entities:read", "comment": "Allows to read entities" },
+    { "name": "storage:spans:read", "comment": "Allows to read spans" }
+  ]
   }
 }
