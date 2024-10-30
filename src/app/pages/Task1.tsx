@@ -14,31 +14,43 @@ import { useDqlQuery } from '@dynatrace-sdk/react-hooks';
 import { Heading } from '@dynatrace/strato-components';
 import { ProgressCircle } from '@dynatrace/strato-components';
 import { Timeseries, TimeseriesChart } from '@dynatrace/strato-components-preview/charts';
+import { FieldTypeType, QueryResult } from '@dynatrace-sdk/client-query';
 
 export const Task1 = () => {
-  const cpuUsage: Timeseries[] = [
+  const cpuUsage: QueryResult =
     {
-      name: ['pl1l-vh48.example.com', 'HYPERVISOR-CC7CFC844F787622'],
-      unit: 'percent',
-      datapoints: [
+      "records": [
         {
-          start: new Date('Tue, 05 Apr 2022 12:18:00 UTC'),
-          end: new Date('Tue, 12 Apr 2022 12:19:00 UTC'),
-          value: 51,
+          "request_attribute.Easytrade login": "login01",
+          "duration": "7930000"
         },
         {
-          start: new Date('Tue, 12 Apr 2022 12:19:00 UTC'),
-          end: new Date('Tue, 19 Apr 2022 12:20:00 UTC'),
-          value: 49.29,
+          "request_attribute.Easytrade login": "login02",
+          "duration": "6283000"
         },
         {
-          start: new Date('Tue, 19 Apr 2022 12:20:00 UTC'),
-          end: new Date('Tue, 26 Apr 2022 12:21:00 UTC'),
-          value: 51.98,
+          "request_attribute.Easytrade login": "login03",
+          "duration": "11382000"
+        }
+      ],
+      "metadata": { },
+      "types": [
+        {
+          "mappings": {
+            "request_attribute.Easytrade login": {
+              "type": FieldTypeType.String
+            },
+            "duration": {
+              "type": FieldTypeType.Duration
+            }
+          },
+          "indexRange": [
+            0,
+            2
+          ]
         }
       ]
     }
-  ];
   
   const responseTime = useDqlQuery({
     body: {
@@ -50,15 +62,100 @@ export const Task1 = () => {
         `,
     },
   });
-  const throughput = useDqlQuery({
-    body: {
-      query:
-        ` fetch spans
-        | filter isNotNull(\`request_attribute.Easytrade login\`)
-        | makeTimeseries count(), by: {bin(start_time, 5m)}, interval: 15s 
-        `,
-    },
-  });
+  const throughputQueryResult: QueryResult = 
+    {
+        "records": [
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:20:45.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:00.000000000+08:00",
+            "throughput": 0.2
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:30.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:21:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:00.000000000+08:00",
+            "throughput": 0.6
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:30.000000000+08:00",
+            "throughput": 0.6
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:22:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:00.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:15.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:30.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:23:45.000000000+08:00",
+            "throughput": 0.8
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:00.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:15.000000000+08:00",
+            "throughput": 0.2
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:30.000000000+08:00",
+            "throughput": 1
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:24:45.000000000+08:00",
+            "throughput": 0.4
+          },
+          {
+            "bin(start_time, 15s)": "2024-10-28T15:25:00.000000000+08:00",
+            "throughput": 0.2
+          }
+        ],
+        "metadata": {},
+        "types": [
+          {
+            "mappings": {
+              "bin(start_time, 15s)": {
+                "type": FieldTypeType.Timestamp
+              },
+              "throughput": {
+                "type": FieldTypeType.Double
+              }
+            },
+            "indexRange": [
+              0,
+              17
+            ]
+          }
+        ]
+      }
   const failure = useDqlQuery({
     body: {
       query:
