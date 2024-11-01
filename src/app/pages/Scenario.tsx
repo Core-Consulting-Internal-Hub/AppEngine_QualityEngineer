@@ -1,25 +1,10 @@
 import { FieldTypeType, QueryResult } from "@dynatrace-sdk/client-query";
 import { Flex } from "@dynatrace/strato-components";
-import { convertToTimeseries, DataTable, FieldSet, Tab, TableColumn, Tabs, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import React, { useEffect, useState } from "react";
+import { convertToTimeseries, DataTable, Tab, TableColumn, Tabs, TimeseriesChart } from "@dynatrace/strato-components-preview";
+import React from "react";
 
 
 export const Scenario = () => {
-  const [responseTimeData, setResponseTimeData] = useState();
-  const [failureRateData, setFailureRateData] = useState();
-  const [cpuUsageData, setCpuUsageData] = useState();
-  const [throughputData, setThroughputData] = useState();
-
-  const [spans, setSpans] = useState(null);
-
-  useEffect(() => {
-      fetch("./assets/Spans.json")
-          .then((response) => response.json())
-          .then((data) => setSpans(data));
-  }, []);
-
-  console.log(spans)
-
   const responseTimeQueryResult: QueryResult = 
   {
       "records": [
@@ -690,6 +675,7 @@ export const Scenario = () => {
         </Tab>
       </Tabs>
       <DataTable data={tableQueryResult.records} columns={columns} sortable resizable>
+        <DataTable.Pagination />
       </DataTable>
     </Flex>
   )
