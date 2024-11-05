@@ -15,159 +15,465 @@ import { Heading } from '@dynatrace/strato-components';
 import { ProgressCircle } from '@dynatrace/strato-components';
 import { Timeseries, TimeseriesChart } from '@dynatrace/strato-components-preview/charts';
 import { FieldTypeType, QueryResult } from '@dynatrace-sdk/client-query';
+import { Tab, Tabs } from '@dynatrace/strato-components-preview';
+import Colors from '@dynatrace/strato-design-tokens/colors';
 
 export const Task1 = () => {
-  const cpuUsage: QueryResult =
+  const cpuUsageQueryResult: QueryResult =
+  {
+    "records": [
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:40:00.000Z",
+          "end": "2024-11-04T06:50:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"CPU usage\"": "CPU usage",
+        "easyTravelTransaction": "login01",
+        "avg(span.timing.cpu)": [
+          null,
+          0,
+          null,
+          null,
+          null,
+          null,
+          0
+        ]
+      },
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:40:00.000Z",
+          "end": "2024-11-04T06:50:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"CPU usage\"": "CPU usage",
+        "easyTravelTransaction": "login02",
+        "avg(span.timing.cpu)": [
+          0,
+          null,
+          null,
+          null,
+          null,
+          0,
+          0
+        ]
+      }
+    ],
+    "metadata": {},
+    "types": [
+      {
+        "mappings": {
+          "timeframe": {
+            "type": FieldTypeType.Timeframe
+          },
+          "interval": {
+            "type": FieldTypeType.Duration
+          },
+          "\"CPU usage\"": {
+            "type": FieldTypeType.String
+          },
+          "easyTravelTransaction": {
+            "type": FieldTypeType.String
+          },
+          "avg(span.timing.cpu)": {
+            "type": FieldTypeType.Array,
+            "types": [
+              {
+                "mappings": {
+                  "element": {
+                    "type": FieldTypeType.Double
+                  }
+                },
+                "indexRange": [
+                  0,
+                  6
+                ]
+              }
+            ]
+          }
+        },
+        "indexRange": [
+          0,
+          1
+        ]
+      }
+    ]
+  }
+  
+  const responseTimeQueryResult : QueryResult =
     {
       "records": [
         {
-          "request_attribute.Easytrade login": "login01",
-          "duration": "7930000"
+          "timeframe": {
+            "start": "2024-11-04T05:20:00.000Z",
+            "end": "2024-11-04T06:30:00.000Z"
+          },
+          "interval": "600000000000",
+          "\"Median Duration (ms)\"": "Median Duration (ms)",
+          "easyTravelTransaction": "login01",
+          "median(duration)": [
+            null,
+            6057000,
+            null,
+            6779000,
+            null,
+            null,
+            null
+          ]
         },
         {
-          "request_attribute.Easytrade login": "login02",
-          "duration": "6283000"
-        },
-        {
-          "request_attribute.Easytrade login": "login03",
-          "duration": "11382000"
+          "timeframe": {
+            "start": "2024-11-04T05:20:00.000Z",
+            "end": "2024-11-04T06:30:00.000Z"
+          },
+          "interval": "600000000000",
+          "\"Median Duration (ms)\"": "Median Duration (ms)",
+          "easyTravelTransaction": "login02",
+          "median(duration)": [
+            6692000,
+            7217000,
+            6803000,
+            null,
+            null,
+            null,
+            null
+          ]
         }
       ],
-      "metadata": { },
+      "metadata": {
+      },
       "types": [
         {
           "mappings": {
-            "request_attribute.Easytrade login": {
+            "timeframe": {
+              "type": FieldTypeType.Timeframe
+            },
+            "interval": {
+              "type": FieldTypeType.Duration
+            },
+            "\"Median Duration (ms)\"": {
               "type": FieldTypeType.String
             },
-            "duration": {
-              "type": FieldTypeType.Duration
+            "easyTravelTransaction": {
+              "type": FieldTypeType.String
+            },
+            "median(duration)": {
+              "type": FieldTypeType.Array,
+              "types": [
+                {
+                  "mappings": {
+                    "element": {
+                      "type": FieldTypeType.Double
+                    }
+                  },
+                  "indexRange": [
+                    0,
+                    6
+                  ]
+                }
+              ]
             }
           },
           "indexRange": [
             0,
-            2
+            1
           ]
         }
       ]
     }
-  
-  const responseTime = useDqlQuery({
-    body: {
-      query:
-        ` fetch spans
-        | filter request_attribute.Easytrade login == "andrew_wall"
-        | filter isNotNull(request_attribute.Easytrade login)
-        | makeTimeseries median(duration), by: {"Median Duration (ms)"}, interval: 10m
-        `,
-    },
-  });
+
   const throughputQueryResult: QueryResult = 
-    {
-        "records": [
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:20:45.000000000+08:00",
-            "throughput": 0.8
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:21:00.000000000+08:00",
-            "throughput": 0.2
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:21:15.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:21:30.000000000+08:00",
-            "throughput": 0.8
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:21:45.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:22:00.000000000+08:00",
-            "throughput": 0.6
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:22:15.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:22:30.000000000+08:00",
-            "throughput": 0.6
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:22:45.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:23:00.000000000+08:00",
-            "throughput": 0.8
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:23:15.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:23:30.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:23:45.000000000+08:00",
-            "throughput": 0.8
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:24:00.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:24:15.000000000+08:00",
-            "throughput": 0.2
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:24:30.000000000+08:00",
-            "throughput": 1
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:24:45.000000000+08:00",
-            "throughput": 0.4
-          },
-          {
-            "bin(start_time, 15s)": "2024-10-28T15:25:00.000000000+08:00",
-            "throughput": 0.2
-          }
-        ],
-        "metadata": {},
-        "types": [
-          {
-            "mappings": {
-              "bin(start_time, 15s)": {
-                "type": FieldTypeType.Timestamp
-              },
-              "throughput": {
-                "type": FieldTypeType.Double
-              }
-            },
-            "indexRange": [
-              0,
-              17
-            ]
-          }
+  {
+    "records": [
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:50:00.000Z",
+          "end": "2024-11-04T07:00:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"ThroughPut\"": "ThroughPut",
+        "easyTravelTransaction": "login01",
+        "count()": [
+          1,
+          null,
+          null,
+          null,
+          null,
+          1,
+          null
+        ]
+      },
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:50:00.000Z",
+          "end": "2024-11-04T07:00:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"ThroughPut\"": "ThroughPut",
+        "easyTravelTransaction": "login02",
+        "count()": [
+          null,
+          null,
+          null,
+          null,
+          1,
+          1,
+          null
         ]
       }
-  const failure = useDqlQuery({
-    body: {
-      query:
-        ` fetch spans
-      | filter isNotNull(\`request_attribute.Easytrade login\`)
-      | summarize 
-          failureRate = (countif(http.response.status_code != 200) / count()) * 100,
-          by: {bin(start_time, 15s)}
-      `,
-    },
-  });
+    ],
+    "metadata": {},
+    "types": [
+      {
+        "mappings": {
+          "timeframe": {
+            "type": FieldTypeType.Timeframe
+          },
+          "interval": {
+            "type": FieldTypeType.Duration
+          },
+          "\"ThroughPut\"": {
+            "type": FieldTypeType.String
+          },
+          "easyTravelTransaction": {
+            "type": FieldTypeType.String
+          },
+          "count()": {
+            "type": FieldTypeType.Array,
+            "types": [
+              {
+                "mappings": {
+                  "element": {
+                    "type": FieldTypeType.Double
+                  }
+                },
+                "indexRange": [
+                  0,
+                  6
+                ]
+              }
+            ]
+          }
+        },
+        "indexRange": [
+          0,
+          1
+        ]
+      }
+    ]
+  }  
+  
+  const failureRateQueryResult : QueryResult =
+  {
+    "records": [
+      {
+        "easyTravelTransaction": "login01",
+        "bin(start_time, 15s)": "2024-11-04T14:40:15.000000000+08:00",
+        "failureRate": "0"
+      },
+      {
+        "easyTravelTransaction": "login02",
+        "bin(start_time, 15s)": "2024-11-04T14:36:15.000000000+08:00",
+        "failureRate": "0"
+      },
+      {
+        "easyTravelTransaction": "login02",
+        "bin(start_time, 15s)": "2024-11-04T14:44:15.000000000+08:00",
+        "failureRate": "0"
+      }
+    ],
+    "metadata": {},
+    "types": [
+      {
+        "mappings": {
+          "easyTravelTransaction": {
+            "type": FieldTypeType.String
+          },
+          "bin(start_time, 15s)": {
+            "type": FieldTypeType.Timestamp
+          },
+          "failureRate": {
+            "type": FieldTypeType.Long
+          }
+        },
+        "indexRange": [
+          0,
+          2
+        ]
+      }
+    ]
+  }
 
+  const tableQueryResult : QueryResult =
+  {
+    "records": [
+      {
+        "easyTravelTransaction": "login01",
+        "responseTime": 12558974,
+        "failureRate": 0,
+        "cpuUsage": 0,
+        "throughput": 0.4
+      },
+      {
+        "easyTravelTransaction": "login02",
+        "responseTime": 7870052,
+        "failureRate": 0,
+        "cpuUsage": 0,
+        "throughput": 0.4
+      }
+    ],
+    "metadata": {},
+    "types": [
+      {
+        "mappings": {
+          "easyTravelTransaction": {
+            "type": FieldTypeType.String
+          },
+          "responseTime": {
+            "type": FieldTypeType.Duration
+          },
+          "failureRate": {
+            "type": FieldTypeType.Long
+          },
+          "cpuUsage": {
+            "type": FieldTypeType.Duration
+          },
+          "throughput": {
+            "type": FieldTypeType.Double
+          }
+        },
+        "indexRange": [
+          0,
+          1
+        ]
+      }
+    ]
+  }
+
+  const columns : TableColumn[] =[
+    {
+      header: 'txn',
+      accessor: 'easyTravelTransaction',
+      autoWidth: true,
+    },
+    {
+      header: 'Response Time',
+      accessor: 'responseTime',
+      autoWidth: true,
+      columnType: 'meterbar',
+      config: {
+        color: Colors.Charts.Categorical.Color15.Default,
+        showTooltip: true,
+        min: 0,
+        max: 10000000,
+        thresholds: [
+          {
+            value: 100000,
+            color: Colors.Charts.Threshold.Good.Default,
+            name: 'Good',
+          },
+          {
+            value: 1000000,
+            color: Colors.Charts.Threshold.Warning.Default,
+            name: 'Warning',
+          },
+          {
+            value: 10000000,
+            color: Colors.Charts.Threshold.Bad.Default,
+            name: 'Bad',
+          },
+        ],
+      },
+    },
+    {
+      header: 'Failure Rate',
+      accessor: 'failureRate',
+      autoWidth: true,
+      columnType: 'meterbar',
+      config: {
+        color: Colors.Charts.Categorical.Color15.Default,
+        showTooltip: true,
+        min: 0,
+        max: 10,
+        thresholds: [
+          {
+            value: 0, //should be changed according to the quantity of the vu
+            color: Colors.Charts.Threshold.Good.Default,
+            name: 'Good',
+          },
+          {
+            value: 100,
+            color: Colors.Charts.Threshold.Warning.Default,
+            name: 'Warning',
+          },
+          {
+            value: 1000,
+            color: Colors.Charts.Threshold.Bad.Default,
+            name: 'Bad',
+          },
+        ],
+      },
+    },
+    {
+      header: 'CPU usage',
+      accessor: 'cpuUsage',
+      autoWidth: true,
+      columnType: 'meterbar',
+      config: {
+        color: Colors.Charts.Categorical.Color15.Default,
+        showTooltip: true,
+        min: 0,
+        max: 1000,
+        thresholds: [
+          {
+            value: 10000,
+            color: Colors.Charts.Threshold.Good.Default,
+            name: 'Good',
+          },
+          {
+            value: 100000,
+            color: Colors.Charts.Threshold.Warning.Default,
+            name: 'Warning',
+          },
+          {
+            value: 1000000,
+            color: Colors.Charts.Threshold.Bad.Default,
+            name: 'Bad',
+          },
+        ],
+      },
+    },
+    {
+      header: 'Throughput',
+      accessor: 'throughput',
+      autoWidth: true,
+      columnType: 'meterbar',
+      config: {
+        color: Colors.Charts.Categorical.Color15.Default,
+        showTooltip: true,
+        min: 0,
+        max: 10,
+        thresholds: [
+          {
+            value: 0,
+            color: Colors.Charts.Threshold.Good.Default,
+            name: 'Good',
+          },
+          {
+            value: 5,
+            color: Colors.Charts.Threshold.Warning.Default,
+            name: 'Warning',
+          },
+          {
+            value: 10,
+            color: Colors.Charts.Threshold.Bad.Default,
+            name: 'Bad',
+          },
+        ],
+      },
+    }
+  ];
+  
   return (
     <Flex
       width="100%"
@@ -176,76 +482,39 @@ export const Task1 = () => {
       gap={16}
       flexWrap="wrap"  // Enables wrapping to the next row
     >
-      <Flex
-        flexDirection="column"
-        flexBasis="calc(50% - 16px)"  // Makes each element take 50% width (minus gap)
-        maxWidth="calc(50% - 16px)"  // Ensures elements don’t exceed row width
-      >
-        <Heading as="h3">CPU Usage</Heading>
-        {result.isLoading && <ProgressCircle />}
-        {result.data && (
-          <Container>
-            <TimeseriesChart
-              data={convertToTimeseries(result.data.records, result.data.types)}
-              gapPolicy="connect"
-              variant="line"
-            />
-          </Container>
-        )}
+      <Flex 
+      width="100%"
+      flexDirection="column"
+      justifyContent="center">
+        <Tabs defaultIndex={0}>
+          <Tab title="Response Time">
+            <TimeseriesChart data={convertToTimeseries(responseTimeQueryResult.records, responseTimeQueryResult.types)} variant="bar"></TimeseriesChart>
+          </Tab>
+          <Tab title="Failure Rate">
+            <Flex flexDirection="column">                   
+              <TimeseriesChart data={convertToTimeseries(failureRateQueryResult.records, failureRateQueryResult.types)} variant="line"></TimeseriesChart>
+            </Flex>
+          </Tab>
+          <Tab title="CPU usage">
+            <Flex flexDirection="column">                 
+              <TimeseriesChart data={convertToTimeseries(cpuUsageQueryResult.records, cpuUsageQueryResult.types)} variant="area"></TimeseriesChart>
+            </Flex>
+          </Tab>
+          <Tab title="Throughput">
+            <Flex flexDirection="column">
+              <TimeseriesChart data={convertToTimeseries(throughputQueryResult.records, throughputQueryResult.types)} variant="bar"></TimeseriesChart>
+            </Flex>
+          </Tab>
+        </Tabs>
       </Flex>
-
       <Flex
-        flexDirection="column"
-        flexBasis="calc(50% - 16px)"
-        maxWidth="calc(50% - 16px)"
-      >
-        <Heading as="h3">Response Time</Heading>
-        {result.isLoading && <ProgressCircle />}
-        {result.data && (
-          <Container>
-            <TimeseriesChart
-              data={convertToTimeseries(result.data.records, result.data.types)}
-              gapPolicy="connect"
-              variant="line"
-            />
-          </Container>
-        )}
-      </Flex>
-
-      <Flex
-        flexDirection="column"
-        flexBasis="calc(50% - 16px)"
-        maxWidth="calc(50% - 16px)"
-      >
-        <Heading as="h3">Throughput</Heading>
-        {result.isLoading && <ProgressCircle />}
-        {result.data && (
-          <Container>
-            <TimeseriesChart
-              data={convertToTimeseries(result.data.records, result.data.types)}
-              gapPolicy="connect"
-              variant="line"
-            />
-          </Container>
-        )}
-      </Flex>
-
-      <Flex
-        flexDirection="column"
-        flexBasis="calc(50% - 16px)"
-        maxWidth="calc(50% - 16px)"
-      >
-        <Heading as="h3">Failure Rate</Heading>
-        {failure.isLoading && <ProgressCircle />}
-        {failure.data && (
-          <Container>
-            <TimeseriesChart
-              data={convertToTimeseries(failure.data.records, failure.data.types)}
-              gapPolicy="connect"
-              variant="line"
-            />
-          </Container>
-        )}
+      width="100%"
+      flexDirection="column"
+      justifyContent="center">
+        <DataTable data={tableQueryResult.records}  columns={columns} sortable resizable>
+          <DataTable.Pagination />
+          <DataTable.Toolbar />
+        </DataTable>
       </Flex>
     </Flex>
 
