@@ -1,4 +1,4 @@
-import React, { Profiler } from 'react';
+import React, { Profiler, useState } from 'react';
 import { Container, Flex } from '@dynatrace/strato-components/layouts';
 import { TitleBar } from '@dynatrace/strato-components-preview/layouts';
 import {
@@ -10,15 +10,27 @@ import {
   DataTable,
   TableColumn,
 } from '@dynatrace/strato-components-preview/tables';
-import { useDqlQuery } from '@dynatrace-sdk/react-hooks';
 import { Heading } from '@dynatrace/strato-components';
 import { ProgressCircle } from '@dynatrace/strato-components';
 import { Timeseries, TimeseriesChart } from '@dynatrace/strato-components-preview/charts';
 import { FieldTypeType, QueryResult } from '@dynatrace-sdk/client-query';
-import { Tab, Tabs } from '@dynatrace/strato-components-preview';
+import { subHours } from 'date-fns';
+import { Tab, Tabs, TimeframeSelector, TimeframeV2 } from '@dynatrace/strato-components-preview';
 import Colors from '@dynatrace/strato-design-tokens/colors';
 
-export const Task1 = () => {
+export const Task1 = (props) => {
+  const [time, setTime] = useState<TimeframeV2 | null>({
+    from: {
+      absoluteDate: subHours(new Date(), 2).toISOString(),
+      value: 'now()-2h',
+      type: 'expression',
+    },
+    to: {
+      absoluteDate: new Date().toISOString(),
+      value: 'now()',
+      type: 'expression',
+    },
+  });
   const cpuUsageQueryResult: QueryResult =
   {
     "records": [
@@ -99,90 +111,90 @@ export const Task1 = () => {
       }
     ]
   }
-  
-  const responseTimeQueryResult : QueryResult =
-    {
-      "records": [
-        {
-          "timeframe": {
-            "start": "2024-11-04T05:20:00.000Z",
-            "end": "2024-11-04T06:30:00.000Z"
-          },
-          "interval": "600000000000",
-          "\"Median Duration (ms)\"": "Median Duration (ms)",
-          "easyTravelTransaction": "login01",
-          "median(duration)": [
-            null,
-            6057000,
-            null,
-            6779000,
-            null,
-            null,
-            null
-          ]
-        },
-        {
-          "timeframe": {
-            "start": "2024-11-04T05:20:00.000Z",
-            "end": "2024-11-04T06:30:00.000Z"
-          },
-          "interval": "600000000000",
-          "\"Median Duration (ms)\"": "Median Duration (ms)",
-          "easyTravelTransaction": "login02",
-          "median(duration)": [
-            6692000,
-            7217000,
-            6803000,
-            null,
-            null,
-            null,
-            null
-          ]
-        }
-      ],
-      "metadata": {
-      },
-      "types": [
-        {
-          "mappings": {
-            "timeframe": {
-              "type": FieldTypeType.Timeframe
-            },
-            "interval": {
-              "type": FieldTypeType.Duration
-            },
-            "\"Median Duration (ms)\"": {
-              "type": FieldTypeType.String
-            },
-            "easyTravelTransaction": {
-              "type": FieldTypeType.String
-            },
-            "median(duration)": {
-              "type": FieldTypeType.Array,
-              "types": [
-                {
-                  "mappings": {
-                    "element": {
-                      "type": FieldTypeType.Double
-                    }
-                  },
-                  "indexRange": [
-                    0,
-                    6
-                  ]
-                }
-              ]
-            }
-          },
-          "indexRange": [
-            0,
-            1
-          ]
-        }
-      ]
-    }
 
-  const throughputQueryResult: QueryResult = 
+  const responseTimeQueryResult: QueryResult =
+  {
+    "records": [
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:20:00.000Z",
+          "end": "2024-11-04T06:30:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"Median Duration (ms)\"": "Median Duration (ms)",
+        "easyTravelTransaction": "login01",
+        "median(duration)": [
+          null,
+          6057000,
+          null,
+          6779000,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "timeframe": {
+          "start": "2024-11-04T05:20:00.000Z",
+          "end": "2024-11-04T06:30:00.000Z"
+        },
+        "interval": "600000000000",
+        "\"Median Duration (ms)\"": "Median Duration (ms)",
+        "easyTravelTransaction": "login02",
+        "median(duration)": [
+          6692000,
+          7217000,
+          6803000,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ],
+    "metadata": {
+    },
+    "types": [
+      {
+        "mappings": {
+          "timeframe": {
+            "type": FieldTypeType.Timeframe
+          },
+          "interval": {
+            "type": FieldTypeType.Duration
+          },
+          "\"Median Duration (ms)\"": {
+            "type": FieldTypeType.String
+          },
+          "easyTravelTransaction": {
+            "type": FieldTypeType.String
+          },
+          "median(duration)": {
+            "type": FieldTypeType.Array,
+            "types": [
+              {
+                "mappings": {
+                  "element": {
+                    "type": FieldTypeType.Double
+                  }
+                },
+                "indexRange": [
+                  0,
+                  6
+                ]
+              }
+            ]
+          }
+        },
+        "indexRange": [
+          0,
+          1
+        ]
+      }
+    ]
+  }
+
+  const throughputQueryResult: QueryResult =
   {
     "records": [
       {
@@ -261,9 +273,9 @@ export const Task1 = () => {
         ]
       }
     ]
-  }  
-  
-  const failureRateQueryResult : QueryResult =
+  }
+
+  const failureRateQueryResult: QueryResult =
   {
     "records": [
       {
@@ -304,7 +316,7 @@ export const Task1 = () => {
     ]
   }
 
-  const tableQueryResult : QueryResult =
+  const tableQueryResult: QueryResult =
   {
     "records": [
       {
@@ -350,7 +362,7 @@ export const Task1 = () => {
     ]
   }
 
-  const columns : TableColumn[] =[
+  const columns: TableColumn[] = [
     {
       header: 'txn',
       accessor: 'easyTravelTransaction',
@@ -473,7 +485,7 @@ export const Task1 = () => {
       },
     }
   ];
-  
+
   return (
     <Flex
       width="100%"
@@ -482,21 +494,22 @@ export const Task1 = () => {
       gap={16}
       flexWrap="wrap"  // Enables wrapping to the next row
     >
-      <Flex 
-      width="100%"
-      flexDirection="column"
-      justifyContent="center">
+      <Flex width="100%" flexDirection="column" justifyContent="center">
+        <Flex width='100%' flexDirection='row' justifyContent='space-between' alignItems="center">
+          <Heading level={1}>{props.name ? props.name : "Scenario"}</Heading>
+          <TimeframeSelector value={time} onChange={setTime} />
+        </Flex>
         <Tabs defaultIndex={0}>
           <Tab title="Response Time">
             <TimeseriesChart data={convertToTimeseries(responseTimeQueryResult.records, responseTimeQueryResult.types)} variant="bar"></TimeseriesChart>
           </Tab>
           <Tab title="Failure Rate">
-            <Flex flexDirection="column">                   
+            <Flex flexDirection="column">
               <TimeseriesChart data={convertToTimeseries(failureRateQueryResult.records, failureRateQueryResult.types)} variant="line"></TimeseriesChart>
             </Flex>
           </Tab>
           <Tab title="CPU usage">
-            <Flex flexDirection="column">                 
+            <Flex flexDirection="column">
               <TimeseriesChart data={convertToTimeseries(cpuUsageQueryResult.records, cpuUsageQueryResult.types)} variant="area"></TimeseriesChart>
             </Flex>
           </Tab>
@@ -508,10 +521,10 @@ export const Task1 = () => {
         </Tabs>
       </Flex>
       <Flex
-      width="100%"
-      flexDirection="column"
-      justifyContent="center">
-        <DataTable data={tableQueryResult.records}  columns={columns} sortable resizable>
+        width="100%"
+        flexDirection="column"
+        justifyContent="center">
+        <DataTable data={tableQueryResult.records} columns={columns} sortable resizable>
           <DataTable.Pagination />
           <DataTable.Toolbar />
         </DataTable>
