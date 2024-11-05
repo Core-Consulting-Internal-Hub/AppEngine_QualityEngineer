@@ -4,7 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { Data } from "./pages/Data";
 import { Header } from "./components/Header";
 import { Home } from "./pages/Home";
-import { Task1 } from "./pages/Task1";
+import { Task1 } from "./pages/DetailedPage";
 
 export const App = () => {
   return (
