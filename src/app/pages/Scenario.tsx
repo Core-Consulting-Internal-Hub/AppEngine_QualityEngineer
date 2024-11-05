@@ -1,10 +1,40 @@
 import { FieldTypeType, QueryResult } from "@dynatrace-sdk/client-query";
-import { Flex } from "@dynatrace/strato-components";
-import { convertToTimeseries, DataTable, Tab, TableColumn, Tabs, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import React from "react";
+import { Button, Container, Flex } from "@dynatrace/strato-components";
+import { convertToTimeseries, DataTable, Tab, TableColumn, Tabs, TimeseriesChart, TimeframeV2 } from "@dynatrace/strato-components-preview";
+import { Heading, Link } from '@dynatrace/strato-components/typography'
+import { TimeframeSelector } from "@dynatrace/strato-components-preview";
+import { subHours } from 'date-fns';
+import React, { useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 
+export const Scenario = (props) => {
+  const [time, setTime] = useState<TimeframeV2 | null>({
+    from: {
+      absoluteDate: subHours(new Date(), 2).toISOString(),
+      value: 'now()-2h',
+      type: 'expression',
+    },
+    to: {
+      absoluteDate: new Date().toISOString(),
+      value: 'now()',
+      type: 'expression',
+    },
+  });
 
-export const Scenario = () => {
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const [selectedRowsData, setSelectedRowsData] = useState([]);
+
+  const myRowSelectionChangedListener = (
+    SelectedRows: Record<string, boolean>,
+    selectedRowsData: [],
+    trigger: 'user' | 'internal'
+  ) => {
+    setSelectedRows(SelectedRows)
+    setSelectedRowsData(selectedRowsData);
+  };
+
+  console.log(selectedRowsData)
+
   const responseTimeQueryResult: QueryResult = 
   {
       "records": [
@@ -337,264 +367,166 @@ export const Scenario = () => {
   {
     "records": [
       {
-        "easyTradeLogin": "amy_price",
+        "Run": "run01",
         "responseTime": "7262000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "andrew_wall",
+        "Run": "run02",
         "responseTime": "6192000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "ashley_may",
+        "Run": "run03",
         "responseTime": "8923000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "catherine_rojas",
+        "Run": "run04",
         "responseTime": "6356000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "francis_cunningham",
+        "Run": "run05",
         "responseTime": "8061000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "hailey_jimenez",
+        "Run": "run06",
         "responseTime": "6636000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "harry_harris",
+        "Run": "run07",
         "responseTime": "5566000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "james_norton",
+        "Run": "run08",
         "responseTime": "9634000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "jeremy_pollard",
+        "Run": "run09",
         "responseTime": "5713000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "jessica_petty",
+        "Run": "run10",
         "responseTime": "6904418",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
       {
-        "easyTradeLogin": "jessica_salas",
+        "Run": "run11",
         "responseTime": "6197165",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
       {
-        "easyTradeLogin": "joshua_swanson",
+        "Run": "run12",
         "responseTime": "6864000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "julie_carpenter",
+        "Run": "run13",
         "responseTime": "7053000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "keith_holt",
+        "Run": "run14",
         "responseTime": "7274000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "kenneth_sutton",
+        "Run": "run15",
         "responseTime": "15052000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "kimberly_key",
+        "Run": "run16",
         "responseTime": "11161262",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
       {
-        "easyTradeLogin": "madison_baldwin",
+        "Run": "run17",
         "responseTime": "11736000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "martin_obrien",
+        "Run": "run18",
         "responseTime": "7130000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "mary_fischer",
+        "Run": "run19",
         "responseTime": "9777383",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
       {
-        "easyTradeLogin": "megan_benton",
+        "Run": "run20",
         "responseTime": "7331000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "michael_copeland",
+        "Run": "run21",
         "responseTime": "7277000",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.2
       },
       {
-        "easyTradeLogin": "monique_rice",
+        "Run": "run22",
         "responseTime": "7369712",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
       {
-        "easyTradeLogin": "nicole_solis",
+        "Run": "run23",
         "responseTime": "6471536",
         "failureRate": "0",
         "cpuUsage": "0",
         "throughput": 0.4
       },
-      {
-        "easyTradeLogin": "paige_valentine",
-        "responseTime": "10371000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "patricia_fisher",
-        "responseTime": "7777000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "paula_marshall",
-        "responseTime": "6922000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "richard_hart",
-        "responseTime": "6959000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "robert_lopez",
-        "responseTime": "6809000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "robin_garcia",
-        "responseTime": "8631000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "sandra_schneider",
-        "responseTime": "6611000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "sean_williams",
-        "responseTime": "7462000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "stephanie_henson",
-        "responseTime": "8474000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "teresa_leon",
-        "responseTime": "5850000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "terri_phelps",
-        "responseTime": "6236000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "tonya_palmer",
-        "responseTime": "7008342",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "easyTradeLogin": "tracy_wright",
-        "responseTime": "7851000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "easyTradeLogin": "veronica_miller",
-        "responseTime": "7555000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      }
     ],
     "metadata": {},
     "types": [
@@ -626,34 +558,39 @@ export const Scenario = () => {
 
   const columns: TableColumn[] = [
     {
-      header: 'EasyTrade Login',
-      accessor: 'easyTradeLogin',
-      autoWidth: true,
+      header: 'Run',
+      accessor: 'Run',
+      ratioWidth: 1,
     },
     {
       header: 'Response Time',
       accessor: 'responseTime',
-      autoWidth: true,
+      ratioWidth: 1,
     },
     {
       header: 'Failure Rate',
       accessor: 'failureRate',
-      autoWidth: true,
+      ratioWidth: 1,
     },
     {
       header: 'CPU usage',
       accessor: 'cpuUsage',
-      autoWidth: true,
+      ratioWidth: 1,
     },
     {
       header: 'Throughput',
       accessor: 'throughput',
-      autoWidth: true,
+      ratioWidth: 1,
     },
   ];
 
   return (
     <Flex width='100%' flexDirection='column' justifyContent='center' gap={16}>
+      <Flex width='100%' flexDirection='row' justifyContent='space-between' alignItems="center">
+        <Heading level={1}>{props.name ? props.name : "Scenario"}</Heading>
+        <TimeframeSelector value={time} onChange={setTime}/>
+      </Flex>
+      <Container>
       <Tabs defaultIndex={0}>
         <Tab title="Response Time">
           <TimeseriesChart data={convertToTimeseries(responseTimeQueryResult.records, responseTimeQueryResult.types)} variant="line"></TimeseriesChart>
@@ -674,7 +611,21 @@ export const Scenario = () => {
           </Flex>
         </Tab>
       </Tabs>
-      <DataTable data={tableQueryResult.records} columns={columns} sortable resizable>
+      </Container>
+      <Flex>
+        <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length == 0}>
+          {selectedRowsData.length != 0 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
+        </Button>
+      </Flex>
+
+      <DataTable 
+        data={tableQueryResult.records} 
+        columns={columns} 
+        sortable
+        defaultSelectedRows={selectedRows}
+        onRowSelectionChange={myRowSelectionChangedListener}
+        selectableRows
+      >
         <DataTable.Pagination />
       </DataTable>
     </Flex>
