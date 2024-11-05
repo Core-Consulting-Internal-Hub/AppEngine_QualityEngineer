@@ -1,5 +1,5 @@
 import { FieldTypeType, QueryResult } from "@dynatrace-sdk/client-query";
-import { Button, Container, Flex } from "@dynatrace/strato-components";
+import { Button, Container, Flex, Text } from "@dynatrace/strato-components";
 import { convertToTimeseries, DataTable, Tab, TableColumn, Tabs, TimeseriesChart, TimeframeV2 } from "@dynatrace/strato-components-preview";
 import { Heading, Link } from '@dynatrace/strato-components/typography'
 import { TimeframeSelector } from "@dynatrace/strato-components-preview";
@@ -368,164 +368,38 @@ export const Scenario = (props) => {
     "records": [
       {
         "Run": "run01",
-        "responseTime": "7262000",
+        "duration": "7262000",
+        "numberOfUsers": "0",
         "failureRate": "0",
-        "cpuUsage": "0",
         "throughput": 0.2
       },
       {
         "Run": "run02",
-        "responseTime": "6192000",
+        "duration": "6192000",
+        "numberOfUsers": "0",
         "failureRate": "0",
-        "cpuUsage": "0",
         "throughput": 0.2
       },
       {
         "Run": "run03",
-        "responseTime": "8923000",
+        "duration": "8923000",
+        "numberOfUsers": "0",
         "failureRate": "0",
-        "cpuUsage": "0",
         "throughput": 0.2
       },
       {
         "Run": "run04",
-        "responseTime": "6356000",
+        "duration": "6356000",
+        "numberOfUsers": "0",
         "failureRate": "0",
-        "cpuUsage": "0",
         "throughput": 0.2
       },
       {
         "Run": "run05",
-        "responseTime": "8061000",
-        "failureRate": "0",
-        "cpuUsage": "0",
+        "duration": "8061000",
+        "numberOfUsers": "0",
+        "failureRate": "1",
         "throughput": 0.2
-      },
-      {
-        "Run": "run06",
-        "responseTime": "6636000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run07",
-        "responseTime": "5566000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run08",
-        "responseTime": "9634000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run09",
-        "responseTime": "5713000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run10",
-        "responseTime": "6904418",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "Run": "run11",
-        "responseTime": "6197165",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "Run": "run12",
-        "responseTime": "6864000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run13",
-        "responseTime": "7053000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run14",
-        "responseTime": "7274000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run15",
-        "responseTime": "15052000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run16",
-        "responseTime": "11161262",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "Run": "run17",
-        "responseTime": "11736000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run18",
-        "responseTime": "7130000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run19",
-        "responseTime": "9777383",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "Run": "run20",
-        "responseTime": "7331000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run21",
-        "responseTime": "7277000",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.2
-      },
-      {
-        "Run": "run22",
-        "responseTime": "7369712",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
-      },
-      {
-        "Run": "run23",
-        "responseTime": "6471536",
-        "failureRate": "0",
-        "cpuUsage": "0",
-        "throughput": 0.4
       },
     ],
     "metadata": {},
@@ -535,13 +409,13 @@ export const Scenario = (props) => {
           "request_attribute.Easytrade login": {
             "type": FieldTypeType.String
           },
-          "responseTime": {
+          "duration": {
             "type": FieldTypeType.Duration
           },
-          "failureRate": {
+          "numberOfUsers": {
             "type": FieldTypeType.Long
           },
-          "cpuUsage": {
+          "failureRate": {
             "type": FieldTypeType.Duration
           },
           "throughput": {
@@ -563,25 +437,32 @@ export const Scenario = (props) => {
       ratioWidth: 1,
     },
     {
-      header: 'Response Time',
-      accessor: 'responseTime',
+      header: 'Duration',
+      accessor: 'duration',
       ratioWidth: 1,
     },
     {
-      header: 'Failure Rate',
+      header: 'Number of Users',
+      accessor: 'numberOfUsers',
+      ratioWidth: 1,
+    },
+    {
+      header: 'Pass / Fail',
       accessor: 'failureRate',
       ratioWidth: 1,
-    },
-    {
-      header: 'CPU usage',
-      accessor: 'cpuUsage',
-      ratioWidth: 1,
-    },
-    {
-      header: 'Throughput',
-      accessor: 'throughput',
-      ratioWidth: 1,
-    },
+      cell: ({ row }) => {
+        return row.original.failureRate === "0" ? (
+          <DataTable.Cell style={{ color: 'green' }}>Passed</DataTable.Cell>
+        ) : (
+          <DataTable.Cell style={{ color: 'red' }}>Failed</DataTable.Cell>
+        );
+      }
+    },    
+    // {
+    //   header: 'Throughput',
+    //   accessor: 'throughput',
+    //   ratioWidth: 1,
+    // },
   ];
 
   return (
@@ -612,10 +493,11 @@ export const Scenario = (props) => {
         </Tab>
       </Tabs>
       </Container>
-      <Flex>
-        <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length == 0}>
-          {selectedRowsData.length != 0 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
+      <Flex flexDirection="row" alignItems="center">
+        <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length == 0 || selectedRowsData.length > 2}>
+          {selectedRowsData.length > 0 &&  selectedRowsData.length < 3 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
         </Button>
+        {selectedRowsData.length > 2 && <Text>Maximum 2 rows are allowes for comparison</Text>}
       </Flex>
 
       <DataTable 
@@ -625,6 +507,11 @@ export const Scenario = (props) => {
         defaultSelectedRows={selectedRows}
         onRowSelectionChange={myRowSelectionChangedListener}
         selectableRows
+        variant={{
+          rowDensity: 'default',
+          rowSeparation: 'zebraStripes',
+          verticalDividers: true,
+          contained: true,}}
       >
         <DataTable.Pagination />
       </DataTable>
