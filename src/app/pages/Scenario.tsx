@@ -1,6 +1,5 @@
-import { FieldTypeType, QueryResult } from "@dynatrace-sdk/client-query";
 import { Button, Container, Flex, Text } from "@dynatrace/strato-components";
-import { convertToTimeseries, DataTable, Tab, TableColumn, Tabs, TimeseriesChart, TimeframeV2 } from "@dynatrace/strato-components-preview";
+import { DataTable, TableColumn, TimeframeV2 } from "@dynatrace/strato-components-preview";
 import { Heading, Link } from '@dynatrace/strato-components/typography'
 import { TimeframeSelector } from "@dynatrace/strato-components-preview";
 import { subHours } from 'date-fns';
