@@ -3,9 +3,9 @@ import { DataTable, TableColumn, TimeframeV2 } from "@dynatrace/strato-component
 import { Heading, Link } from '@dynatrace/strato-components/typography'
 import { TimeframeSelector } from "@dynatrace/strato-components-preview";
 import { subHours } from 'date-fns';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { cpuUsageQueryResult, failureRateQueryResult, responseTimeQueryResult, tableQueryResult, throughputQueryResult } from "../Data/ScenarioData";
+import { getCpuUsageData, generateResponseTimeData, getResponseTimeData, tableQueryResult, generateThroughputData, getThroughputData, generateFailureRateData, getFailureRateData } from "../Data/ScenarioData";
 import { CustomTabs } from "../components/Tabs";
 
 export const Scenario = (props) => {
@@ -22,6 +22,18 @@ export const Scenario = (props) => {
     },
   });
 
+  const [responseTimeData, setResponseTimeData] = useState(generateResponseTimeData(time));
+  const [failureRateData, setFailureRateData] = useState(generateFailureRateData(time));
+  const [cpuUsageData, setCpuUsageData] = useState(generateResponseTimeData(time));
+  const [throughputData, setThroughputData] = useState(generateThroughputData(time));
+
+  useEffect(() => {
+    setResponseTimeData(generateResponseTimeData(time));
+    setCpuUsageData(generateResponseTimeData(time));
+    setThroughputData(generateThroughputData(time));
+    setFailureRateData(generateFailureRateData(time));
+  }, [time])
+
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [selectedRowsData, setSelectedRowsData] = useState([]);
 
@@ -34,27 +46,41 @@ export const Scenario = (props) => {
     setSelectedRowsData(selectedRowsData);
   };
 
-  console.log(selectedRowsData)
+  //Filter the data only for current timeframe
+  const filterDataByTime = (records) => {
+    if (!time) return records;
+    const from = new Date(time.from.absoluteDate);
+    const to = new Date(time.to.absoluteDate);
+  
+    return records.filter(record => {
+      const recordTime = new Date(record.timeframe?.start || record["timestamp"]);
+      return recordTime >= from && recordTime <= to;
+    });
+  };  
 
   const columns: TableColumn[] = [
     {
       header: 'Run',
       accessor: 'Run',
+      autoWidth: true,
       ratioWidth: 1,
     },
     {
       header: 'Duration',
       accessor: 'duration',
+      autoWidth: true,
       ratioWidth: 1,
     },
     {
       header: 'Number of Users',
       accessor: 'numberOfUsers',
+      autoWidth: true,
       ratioWidth: 1,
     },
     {
       header: 'Pass / Fail',
       accessor: 'failureRate',
+      autoWidth: true,
       ratioWidth: 1,
       cell: ({ row }) => {
         return row.original.failureRate === "0" ? (
@@ -83,25 +109,28 @@ export const Scenario = (props) => {
           title2="Failure Rate"
           title3="CPU Usage"
           title4="Throughput"
-          RTRecords={responseTimeQueryResult.records}
-          RTTypes={responseTimeQueryResult.types}
-          FRRecords={failureRateQueryResult.records}
-          FRTypes={failureRateQueryResult.types}
-          CPURecords={cpuUsageQueryResult.records}
-          CPUTypes={cpuUsageQueryResult.types}
-          TPRecords={throughputQueryResult.records}
-          TPTypes={throughputQueryResult.types}
+          RTRecords={filterDataByTime(getResponseTimeData(time, responseTimeData).records)}
+          RTTypes={getResponseTimeData(time, responseTimeData).types}
+          FRRecords={filterDataByTime(getFailureRateData(time, failureRateData).records)}
+          FRTypes={getFailureRateData(time, failureRateData).types}
+          CPURecords={filterDataByTime(getCpuUsageData(time, cpuUsageData).records)}
+          CPUTypes={getCpuUsageData(time, cpuUsageData).types}
+          TPRecords={filterDataByTime(getThroughputData(time, throughputData).records)}
+          TPTypes={getThroughputData(time, throughputData).types}
+          start_time={time?.from.absoluteDate}
+          end_time={time?.to.absoluteDate}
         />
       </Container>
+  
       <Flex flexDirection="row" alignItems="center">
-        <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length == 0 || selectedRowsData.length > 2}>
-          {selectedRowsData.length > 0 &&  selectedRowsData.length < 3 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
+        <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length === 0 || selectedRowsData.length > 2}>
+          {selectedRowsData.length > 0 && selectedRowsData.length < 3 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
         </Button>
-        {selectedRowsData.length > 2 && <Text>Maximum 2 rows are allowes for comparison</Text>}
+        {selectedRowsData.length > 2 && <Text>Maximum 2 rows are allowed for comparison</Text>}
       </Flex>
-
+  
       <DataTable 
-        data={tableQueryResult.records} 
+        data={filterDataByTime(tableQueryResult.records)}
         columns={columns} 
         sortable
         defaultSelectedRows={selectedRows}
@@ -111,10 +140,11 @@ export const Scenario = (props) => {
           rowDensity: 'default',
           rowSeparation: 'zebraStripes',
           verticalDividers: true,
-          contained: true,}}
+          contained: true,
+        }}
       >
         <DataTable.Pagination />
       </DataTable>
     </Flex>
-  )
+  );  
 }
