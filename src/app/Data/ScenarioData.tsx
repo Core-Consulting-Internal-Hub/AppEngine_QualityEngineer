@@ -1,41 +1,72 @@
 import { FieldTypeType, QueryResult } from "@dynatrace-sdk/client-query"
+import { subHours, addMinutes } from 'date-fns';
 
-export const responseTimeQueryResult: QueryResult = 
-{
+export const generateResponseTimeData = (time) => {
+  const intervalDurationMs = 300000; // 5 minutes in milliseconds
+  const startTime = new Date(time.from.absoluteDate).getTime();
+  const endTime = new Date(time.to.absoluteDate).getTime();
+
+  // Calculate the number of intervals based on the timeframe
+  const numIntervals = Math.floor((endTime - startTime) / intervalDurationMs);
+
+  // Generate or retrieve data points for each interval
+  const data = Array.from({ length: numIntervals }, (_, index) => {
+    const timestamp = startTime + index * intervalDurationMs;
+    // const isoTimestamp = new Date(timestamp).toISOString();
+
+    // Generate random data or null for intervals that should have no data
+    return index % 5 === 0 ? null : Math.floor(Math.random() * 10000000) + 5000000;
+  });
+
+  return data; // Return the generated data
+};
+
+export const getResponseTimeData = (time, data) => {
+  return {
+    records: [
+      {
+        timeframe: { start: time.from.absoluteDate, end: time.to.absoluteDate },
+        interval: "300000000000", // 5 minutes in nanoseconds
+        "median(duration)": data
+      },
+    ],
+    metadata: {},
+    types: [
+      {
+        mappings: {
+          timeframe: {
+            type: FieldTypeType.Timeframe,
+          },
+          interval: {
+            type: FieldTypeType.Duration,
+          },
+          "median(duration)": {
+            type: FieldTypeType.Array,
+            types: [
+              {
+                mappings: {
+                  element: {
+                    type: FieldTypeType.Double,
+                  },
+                },
+                indexRange: [0, data.length - 1],
+              },
+            ],
+          },
+        },
+        indexRange: [0, 0],
+      },
+    ],
+  };
+};
+
+export const getCpuUsageData = (time, data) => {
+  return {
     "records": [
       {
-        "timeframe": {
-          "start": "2024-10-29T07:15:00.000Z",
-          "end": "2024-10-29T09:20:00.000Z"
-        },
+        "timeframe": { start: time.from.absoluteDate, end: time.to.absoluteDate },
         "interval": "300000000000",
-        "median(duration)": [
-          7122000,
-          null,
-          5776000,
-          6904418.218712153,
-          6444000,
-          null,
-          null,
-          13749000,
-          6731000,
-          null,
-          6770741.175625163,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          7551000,
-          7452000,
-          null
-        ]
+        "avg(span.timing.cpu)": data
       }
     ],
     "metadata": {},
@@ -48,7 +79,7 @@ export const responseTimeQueryResult: QueryResult =
           "interval": {
             "type": FieldTypeType.Duration
           },
-          "median(duration)": {
+          "avg(span.timing.cpu)": {
             "type": FieldTypeType.Array,
             "types": [
               {
@@ -59,280 +90,125 @@ export const responseTimeQueryResult: QueryResult =
                 },
                 "indexRange": [
                   0,
-                  24
+                  20
                 ]
               }
             ]
           }
         },
-        "indexRange": [
-          0,
-          0
-        ]
+        "indexRange": [0, data.length - 1],
       }
     ]
+  }
 }
 
-export const failureRateQueryResult: QueryResult = 
-{
-  "records": [
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:29:15.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:29:30.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:29:45.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:30:00.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:30:15.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:30:30.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:30:45.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:31:00.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:31:15.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:31:30.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:31:45.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:32:15.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:32:30.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:32:45.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:33:00.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:33:15.000000000+08:00",
-      "failureRate": "0"
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-30T10:33:30.000000000+08:00",
-      "failureRate": "0"
-    }
-  ],
-  "metadata": {},
-  "types": [
-    {
-      "mappings": {
-        "bin(start_time, 15s)": {
-          "type": FieldTypeType.Timestamp
+
+export const generateFailureRateData = (time) => {
+  const intervalDurationMs = 300000; // 15 seconds in milliseconds
+  const startTime = new Date(time.from.absoluteDate).getTime();
+  const endTime = new Date(time.to.absoluteDate).getTime();
+
+  // Calculate the number of intervals based on the timeframe
+  const numIntervals = Math.floor((endTime - startTime) / intervalDurationMs);
+
+  // Generate data for each interval
+  const data = Array.from({ length: numIntervals }, (_, index) => {
+    const timestamp = startTime + index * intervalDurationMs;
+    const isoTimestamp = new Date(timestamp).toISOString();
+
+    // Randomly set failure rate values, or keep them as 0
+    const failureRate = Math.random() < 0.8 ? 0 : Math.floor(Math.random() * 5) + 1; // Mostly 0, with occasional values 1-5
+
+    return {
+      "timestamp": isoTimestamp,
+      "failureRate": failureRate,
+    };
+  });
+
+  return data;
+};
+
+export const getFailureRateData = (time, data) => {
+  return {
+    records: data,
+    metadata: {},
+    types: [
+      {
+        mappings: {
+          "timestamp": {
+            type: FieldTypeType.Timestamp,
+          },
+          "failureRate": {
+            type: FieldTypeType.Long,
+          },
         },
-        "failureRate": {
-          "type": FieldTypeType.Long
-        }
+        indexRange: [0, data.length - 1],
       },
-      "indexRange": [
-        0,
-        16
-      ]
-    }
-  ]
+    ],
+  };
+};
+
+
+export const generateThroughputData = (time) => {
+  const intervalDurationMs = 300000; // 15 seconds in milliseconds
+  const startTime = new Date(time.from.absoluteDate).getTime();
+  const endTime = new Date(time.to.absoluteDate).getTime();
+
+  // Calculate the number of intervals based on the timeframe
+  const numIntervals = Math.floor((endTime - startTime) / intervalDurationMs);
+
+  // Generate data for each interval
+  const data = Array.from({ length: numIntervals }, (_, index) => {
+    const timestamp = startTime + index * intervalDurationMs;
+    const isoTimestamp = new Date(timestamp).toISOString();
+
+    // Generate random throughput values, adjust the logic if needed
+    const throughput = Math.random() * (1 - 0.2) + 0.2; // Random throughput between 0.2 and 1
+
+    return {
+      "timestamp": isoTimestamp,
+      "throughput": throughput,
+    };
+  });
+  return data;
 }
 
-export const cpuUsageQueryResult: QueryResult = 
-{
-  "records": [
-    {
-      "timeframe": {
-        "start": "2024-10-30T02:18:45.000Z",
-        "end": "2024-10-30T02:24:00.000Z"
-      },
-      "interval": "300000000000",
-      "avg(span.timing.cpu)": [
-        null,
-        0,
-        17,
-        27,
-        38,
-        25,
-        101,
-        null,
-        null,
-        11,
-        56,
-        3,
-        null,
-        36,
-        77,
-        50,
-        0,
-        7,
-        0,
-        null,
-        null
-      ]
-    }
-  ],
-  "metadata": {},
-  "types": [
-    {
-      "mappings": {
-        "timeframe": {
-          "type": FieldTypeType.Timeframe
+export const getThroughputData = (time, data) => {
+    return {
+    records: data,
+    metadata: {},
+    types: [
+      {
+        mappings: {
+          "timestamp": {
+            type: FieldTypeType.Timestamp,
+          },
+          "throughput": {
+            type: FieldTypeType.Double,
+          },
         },
-        "interval": {
-          "type": FieldTypeType.Duration
-        },
-        "avg(span.timing.cpu)": {
-          "type": FieldTypeType.Array,
-          "types": [
-            {
-              "mappings": {
-                "element": {
-                  "type": FieldTypeType.Double
-                }
-              },
-              "indexRange": [
-                0,
-                20
-              ]
-            }
-          ]
-        }
+        indexRange: [0, data.length - 1],
       },
-      "indexRange": [
-        0,
-        0
-      ]
-    }
-  ]
-}
+    ],
+  };
+};
 
-export const throughputQueryResult: QueryResult = 
-{
-  "records": [
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:20:45.000000000+08:00",
-      "throughput": 0.8
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:21:00.000000000+08:00",
-      "throughput": 0.2
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:21:15.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:21:30.000000000+08:00",
-      "throughput": 0.8
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:21:45.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:22:00.000000000+08:00",
-      "throughput": 0.6
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:22:15.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:22:30.000000000+08:00",
-      "throughput": 0.6
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:22:45.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:23:00.000000000+08:00",
-      "throughput": 0.8
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:23:15.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:23:30.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:23:45.000000000+08:00",
-      "throughput": 0.8
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:24:00.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:24:15.000000000+08:00",
-      "throughput": 0.2
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:24:30.000000000+08:00",
-      "throughput": 1
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:24:45.000000000+08:00",
-      "throughput": 0.4
-    },
-    {
-      "bin(start_time, 15s)": "2024-10-28T15:25:00.000000000+08:00",
-      "throughput": 0.2
-    }
-  ],
-  "metadata": {},
-  "types": [
-    {
-      "mappings": {
-        "bin(start_time, 15s)": {
-          "type": FieldTypeType.Timestamp
-        },
-        "throughput": {
-          "type": FieldTypeType.Double
-        }
-      },
-      "indexRange": [
-        0,
-        17
-      ]
-    }
-  ]
-}
-
+// fetch spans
+// | filter isNotNull(`request_attribute.Easytrade login`)
+// | fieldsRename easyTradeLogin = `request_attribute.Easytrade login`
+// | summarize 
+//       by: {easyTradeLogin, bin(start_time, 5m)},
+//       {responseTime = sum(duration),
+//       failureRate = (countif(http.response.status_code != 200) / count()) * 100,
+//       cpuUsage = avg(span.timing.cpu),
+//       throughput = count() / 120.0} 
+// | fieldsRename timestamp = `bin(start_time, 5m)`
 export const tableQueryResult: QueryResult = 
 {
   "records": [
     {
       "Run": "run01",
+      "timestamp": "2024-11-07T11:30:00.000000000+08:00",
       "duration": "7262000",
       "numberOfUsers": "0",
       "failureRate": "0",
@@ -340,6 +216,7 @@ export const tableQueryResult: QueryResult =
     },
     {
       "Run": "run02",
+      "timestamp": "2024-11-07T10:30:00.000000000+08:00",
       "duration": "6192000",
       "numberOfUsers": "0",
       "failureRate": "0",
@@ -347,6 +224,7 @@ export const tableQueryResult: QueryResult =
     },
     {
       "Run": "run03",
+      "timestamp": "2024-11-07T09:30:00.000000000+08:00",
       "duration": "8923000",
       "numberOfUsers": "0",
       "failureRate": "0",
@@ -354,6 +232,7 @@ export const tableQueryResult: QueryResult =
     },
     {
       "Run": "run04",
+      "timestamp": "2024-11-07T12:30:00.000000000+08:00",
       "duration": "6356000",
       "numberOfUsers": "0",
       "failureRate": "0",
@@ -361,6 +240,7 @@ export const tableQueryResult: QueryResult =
     },
     {
       "Run": "run05",
+      "timestamp": "2024-11-07T11:30:00.000000000+08:00",
       "duration": "8061000",
       "numberOfUsers": "0",
       "failureRate": "1",
@@ -373,6 +253,9 @@ export const tableQueryResult: QueryResult =
       "mappings": {
         "request_attribute.Easytrade login": {
           "type": FieldTypeType.String
+        },
+        "timestamp": {
+          "type": FieldTypeType.Timestamp
         },
         "duration": {
           "type": FieldTypeType.Duration
