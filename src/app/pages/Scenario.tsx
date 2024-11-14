@@ -1,13 +1,10 @@
-import { Button, Container, Flex, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
-import { DataTable, TABLE_EXPANDABLE_DEFAULT_COLUMN, TableColumn, TextInput, TimeframeV2 } from "@dynatrace/strato-components-preview";
-import { Heading, Link } from '@dynatrace/strato-components/typography'
-import { TimeframeSelector } from "@dynatrace/strato-components-preview";
-import { subHours } from 'date-fns';
-import React, { useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
-import { getCpuUsageData, generateResponseTimeData, getResponseTimeData, tableQueryResult, generateThroughputData, getThroughputData, generateFailureRateData, getFailureRateData } from "../Data/ScenarioData";
-import { CustomTabs } from "../components/Tabs";
+import { Container, Flex, ProgressCircle } from "@dynatrace/strato-components";
+import { DataTable, TableColumn, TextInput, TimeframeSelector, TimeframeV2 } from "@dynatrace/strato-components-preview";
+import React, {  useState } from "react";
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
+import { ExternalLinks, ExternalLinksWithNumberInput } from "../components/ExternalLinks";
+import { hostTagsQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
+import { subHours } from "date-fns"
 
 export const Scenario = (props) => {
   // const [time, setTime] = useState<TimeframeV2 | null>({
@@ -156,18 +153,50 @@ export const Scenario = (props) => {
   // );  
 
   const [timeframe, setTimeframe] = useState('-72h');
+  const [time, setTime] = useState<TimeframeV2 | null>({
+    from: {
+      absoluteDate: subHours(new Date(), 2).toISOString(),
+      value: 'now()-2h',
+      type: 'expression',
+    },
+    to: {
+      absoluteDate: new Date().toISOString(),
+      value: 'now()',
+      type: 'expression',
+    },
+  });
+
+  console.log(time);
+  
+
+  const matchTags = (props) => {
+    const sets = new Map<any, { name: any, id: any }>();
+    props.queryResult.data?.records.forEach(record => {
+      if (record?.tags && Array.isArray(record?.tags)) {
+        for (const tag of record.tags) {
+          if (tag && typeof tag === 'string' && props.row.some(transaction => tag.includes(transaction))) {
+            // Use id as the unique key in Map
+            sets.set(record.id, { name: record.name, id: record.id });
+          }
+        }
+      }
+    });
+    return sets;
+  }
 
   const error = useDqlQuery({
     body: {
-      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: ${timeframe}, by: { run, transaction, cycle }
+      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle }
               | sort arrayAvg(error) desc
               | limit 20`
     }
   });
 
+  console.log(error);
+
   const meantime = useDqlQuery({
     body: {
-      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: ${timeframe}, by: { run, transaction, cycle}
+      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle}
               | fieldsRemove meantime
               | summarize by:{timeframe, run, cycle} , transaction = collectArray(transaction)`
     }
@@ -175,7 +204,7 @@ export const Scenario = (props) => {
 
   const cpuUsage = useDqlQuery({
     body: {
-      query: `timeseries interval: 10m, usage = avg(dt.host.cpu.usage), from: ${timeframe}, by: { dt.entity.host }
+      query: `timeseries interval: 10m, usage = avg(dt.host.cpu.usage), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { dt.entity.host }
               | sort arrayAvg(usage) desc
               | fieldsAdd entityName(dt.entity.host)
               | limit 20`
@@ -213,32 +242,25 @@ export const Scenario = (props) => {
         )
       },
       autoWidth: true,
-      ratioWidth: 1
+      ratioWidth: 2
     },
     {
       header: "Host(s)",
       accessor: "process",
       cell: ({row}) => {
-        const host = useDqlQuery({
-          body: {
-            query: `fetch dt.entity.host, from: ${timeframe}
-                    | fieldsAdd tags
-                    | filter isNotNull(tags)
-                    | fieldsRename host = entity.name`
-          }
-        });
-        const hosts = new Set<any>();
-        host.data?.records.forEach(record => {
-          if (record?.tags && Array.isArray(record?.tags)) {
-            for (const tag of record.tags) {
-              if (tag && typeof tag === 'string' && row.original.transaction.some(transaction => tag.includes(transaction))) {
-                 hosts .add(record.host);
-              }
-            }
-          }
-        });
+        const hosts = matchTags({queryResult: hostTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
 
-        return (<DataTable.Cell>{hosts}</DataTable.Cell>)
+        // Convert Map values to an array and map to add external link
+        const hostLinks = Array.from(hosts.values()).map(host => ({
+          name: host.name,
+          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.services/ui/entity/${host.id}`
+        }));
+
+        return (<DataTable.Cell>
+          <ExternalLinks
+            links ={hostLinks}
+          />
+        </DataTable.Cell>)
       },
       autoWidth: true,
       ratioWidth: 1
@@ -247,27 +269,19 @@ export const Scenario = (props) => {
       header: "Process(es)",
       accessor: "service",
       cell: ({row}) => {
-        const process = useDqlQuery({
-          body: {
-            query: `fetch dt.entity.process_group, from: ${timeframe}
-                    | fieldsAdd tags
-                    | filter isNotNull(tags)
-                    | fieldsRename process = entity.name`
-          }
-        });
+        const processes = matchTags({queryResult: processTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
 
-        const processes= new Set<any>();
-        process.data?.records.forEach(record => {
-          if (record?.tags && Array.isArray(record?.tags)) {
-            for (const tag of record.tags) {
-              if (tag && typeof tag === 'string' && row.original.transaction.some(transaction => tag.includes(transaction))) {
-                 processes.add(record.process);
-              }
-            }
-          }
-        });
+        // Convert Map values to an array and map to add external link
+        const processLinks = Array.from(processes.values()).map(process => ({
+          name: process.name,
+          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.technologies/#processgroupdetails;id=${process.id}`
+        }));
 
-        return (<DataTable.Cell>{processes}</DataTable.Cell>)
+        return (<DataTable.Cell>
+          <ExternalLinks
+            links ={processLinks}
+          />
+        </DataTable.Cell>)
       },
       autoWidth: true,
       ratioWidth: 1
@@ -276,30 +290,22 @@ export const Scenario = (props) => {
       header: "Service(s)",
       accessor: "transaction",
       cell: ({row}) => {
-        const service = useDqlQuery({
-          body: {
-            query: `fetch dt.entity.service, from: ${timeframe}
-                    | fieldsAdd tags
-                    | filter isNotNull(tags)
-                    | fieldsRename service = entity.name`
-          }
-        });
+        const services = matchTags({queryResult: serviceTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
 
-        const services= new Set<any>();
-        service.data?.records.forEach(record => {
-          if (record?.tags && Array.isArray(record?.tags)) {
-            for (const tag of record.tags) {
-              if (tag && typeof tag === 'string' && row.original.transaction.some(transaction => tag.includes(transaction))) {
-                 services.add(record.service);
-              }
-            }
-          }
-        });
+        // Convert Map values to an array and map to add external link
+        const serviceLinks = Array.from(services.values()).map(service => ({
+          name: service.name,
+          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`
+        }));
 
-        return (<DataTable.Cell>{services}</DataTable.Cell>)
+        return (<DataTable.Cell>
+          <ExternalLinksWithNumberInput
+            links ={serviceLinks}
+          />
+        </DataTable.Cell>)
       },
       autoWidth: true,
-      ratioWidth: 1
+      ratioWidth: 2
     },
     {
       header: "Pass/Fail",
@@ -323,11 +329,15 @@ export const Scenario = (props) => {
 
   return (
     <Container>
+      <Flex justifyContent="end" marginBottom={12}>
+        <TimeframeSelector value={time} onChange={setTime} />
+      </Flex>
       {meantime.isLoading && <ProgressCircle/>}
       {meantime.data && <DataTable 
         data={meantime.data?.records} 
         columns={columns}
         sortable
+        resizable
         variant={{
           rowDensity: 'default',
           rowSeparation: 'zebraStripes',
