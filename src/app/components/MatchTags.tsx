@@ -1,0 +1,14 @@
+export const MatchTags = (props) => {
+  const sets = new Map<any, { name: any, id: any }>();
+    props.queryResult.data?.records.forEach(record => {
+      if (record?.tags && Array.isArray(record?.tags)) {
+        for (const tag of record.tags) {
+          if (tag && typeof tag === 'string' && props.row.some(transaction => tag.includes(transaction))) {
+            // Use id as the unique key in Map
+            sets.set(record.id, { name: record.name, id: record.id });
+          }
+        }
+      }
+    });
+  return sets;
+}
