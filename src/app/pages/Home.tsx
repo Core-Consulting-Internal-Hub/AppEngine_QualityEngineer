@@ -31,12 +31,12 @@ export const Home = () => {
 
       <Flex gap={48} paddingTop={64} flexFlow="wrap">
         <Card
-          href="/data"
+          href="/Task1"
           inAppLink
           imgSrc={
             theme === "light" ? "./assets/data.png" : "./assets/data_dark.png"
           }
-          name="Explore data"
+          name="Task 1"
         />
         <Card
           href="https://dt-url.net/developers"
