@@ -1,4 +1,5 @@
 import { FieldTypeType, QueryResult } from '@dynatrace-sdk/client-query';
+import { TableColumn } from '@dynatrace/strato-components-preview';
 import Colors from '@dynatrace/strato-design-tokens/colors';
 
 export const cpuUsageQueryResult: QueryResult =

@@ -8,7 +8,7 @@ import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags } from "../components/MatchTags";
 import { useLocation } from "react-router-dom";
 
-export const Details = (props) => {
+export const Details = () => {
   const location = useLocation();
   const { run, cycle, from, to} = location.state || {};
 

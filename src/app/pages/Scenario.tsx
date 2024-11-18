@@ -2,7 +2,7 @@ import { Button, Container, Flex, ProgressCircle, SkeletonText, Text } from "@dy
 import { convertToTimeseries, DataTable, TableColumn, TextInput, TimeframeSelector, TimeframeV2 } from "@dynatrace/strato-components-preview";
 import React, {  useState } from "react";
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
-import { ExternalLinks, ExternalLinksWithNumberInput } from "../components/ExternalLinks";
+import { ExternalLinks } from "../components/ExternalLinks";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { subHours } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
@@ -131,8 +131,6 @@ export const Scenario = () => {
           link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`,
         }));
 
-        console.log(serviceLinks);
-
         return (
           <DataTable.Cell>
             <Flex flexDirection="row">
@@ -149,17 +147,11 @@ export const Scenario = () => {
                 })}
               </Flex>
               <Flex justifyContent="end" alignItems="center">
-                <Link as={RouterLink} to="" state={{serviceLinks}}>Details</Link>
+                <Link as={RouterLink} to="/ServiceFlowCard" state={{services: serviceLinks}}>Details</Link>
               </Flex>
             </Flex>
           </DataTable.Cell>
         )
-
-        // return (<DataTable.Cell>
-        //   <ExternalLinksWithNumberInput
-        //     links ={serviceLinks}
-        //   />
-        // </DataTable.Cell>)
       },
       autoWidth: true,
       ratioWidth: 2

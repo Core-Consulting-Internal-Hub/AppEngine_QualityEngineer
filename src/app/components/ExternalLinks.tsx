@@ -17,22 +17,3 @@ export const ExternalLinks = (props) => {
     </>
   )
 }
-
-export const ExternalLinksWithNumberInput = (props) => {
-  return (
-    <>
-      <Flex flexDirection="column">
-        {props.links.length == 0 ? <Text>N/A</Text> : props.links.map(item => {
-          return (
-            <Flex flexDirection="row">
-              <input type="number" style={{width: "35px", borderRadius: "25%"}}></input>
-              <ExternalLink href={item.link}>
-                <Link>{item.name}</Link>
-              </ExternalLink>
-            </Flex>
-          )
-        })}
-      </Flex>
-    </>
-  )
-}
