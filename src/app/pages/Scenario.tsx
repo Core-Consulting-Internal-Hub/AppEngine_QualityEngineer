@@ -1,158 +1,17 @@
-import { Container, Flex, ProgressCircle } from "@dynatrace/strato-components";
-import { DataTable, TableColumn, TextInput, TimeframeSelector, TimeframeV2 } from "@dynatrace/strato-components-preview";
+import { Button, Container, Flex, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
+import { convertToTimeseries, DataTable, TableColumn, TextInput, TimeframeSelector, TimeframeV2 } from "@dynatrace/strato-components-preview";
 import React, {  useState } from "react";
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { ExternalLinks, ExternalLinksWithNumberInput } from "../components/ExternalLinks";
-import { hostTagsQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
+import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { subHours } from "date-fns"
+import { Link as RouterLink } from 'react-router-dom';
+import { ExternalLink, Link } from '@dynatrace/strato-components/typography';
+import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
+import { MatchTags } from "../components/MatchTags";
+import { PassCriteria } from "../components/PassCriteria";
 
-export const Scenario = (props) => {
-  // const [time, setTime] = useState<TimeframeV2 | null>({
-  //   from: {
-  //     absoluteDate: subHours(new Date(), 2).toISOString(),
-  //     value: 'now()-2h',
-  //     type: 'expression',
-  //   },
-  //   to: {
-  //     absoluteDate: new Date().toISOString(),
-  //     value: 'now()',
-  //     type: 'expression',
-  //   },
-  // });
-
-  // const [responseTimeData, setResponseTimeData] = useState(generateResponseTimeData(time));
-  // const [failureRateData, setFailureRateData] = useState(generateFailureRateData(time));
-  // const [cpuUsageData, setCpuUsageData] = useState(generateResponseTimeData(time));
-  // const [throughputData, setThroughputData] = useState(generateThroughputData(time));
-
-  // useEffect(() => {
-  //   setResponseTimeData(generateResponseTimeData(time));
-  //   setCpuUsageData(generateResponseTimeData(time));
-  //   setThroughputData(generateThroughputData(time));
-  //   setFailureRateData(generateFailureRateData(time));
-  // }, [time])
-
-  // const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
-  // const [selectedRowsData, setSelectedRowsData] = useState([]);
-
-  // const myRowSelectionChangedListener = (
-  //   SelectedRows: Record<string, boolean>,
-  //   selectedRowsData: [],
-  //   trigger: 'user' | 'internal'
-  // ) => {
-  //   setSelectedRows(SelectedRows)
-  //   setSelectedRowsData(selectedRowsData);
-  // };
-
-  // //Filter the data only for current timeframe
-  // const filterDataByTime = (records) => {
-  //   if (!time) return records;
-  //   const from = new Date(time.from.absoluteDate);
-  //   const to = new Date(time.to.absoluteDate);
-  
-  //   return records.filter(record => {
-  //     const recordTime = new Date(record.timeframe?.start || record["timestamp"]);
-  //     return recordTime >= from && recordTime <= to;
-  //   });
-  // };  
-
-  // const columns: TableColumn[] = [
-  //   {
-  //     header: 'Run',
-  //     accessor: 'Run',
-  //     autoWidth: true,
-  //     ratioWidth: 1,
-  //   },
-  //   {
-  //     header: 'Duration',
-  //     accessor: 'duration',
-  //     autoWidth: true,
-  //     ratioWidth: 1,
-  //     cell: ({ row }) => {
-  //       const data = row.original.duration / 60000000000.00
-  //       return (<DataTable.Cell>
-  //         {data.toFixed(2) == "0.00" ? (row.original.duration / 1000000000.00).toFixed(2) == "0.00" ? (row.original.duration / 1000000).toFixed(2) + "ms" : (row.original.duration / 1000000000.00).toFixed(2) + "s" : data.toFixed(2) + "mins"}
-  //       </DataTable.Cell>)
-  //     }
-  //   },
-  //   {
-  //     header: 'Number of Users',
-  //     accessor: 'numberOfUsers',
-  //     autoWidth: true,
-  //     ratioWidth: 1,
-  //   },
-  //   {
-  //     header: 'Pass / Fail',
-  //     accessor: 'failureRate',
-  //     autoWidth: true,
-  //     ratioWidth: 1,
-  //     cell: ({ row }) => {
-  //       return row.original.failureRate === "0" ? (
-  //         <DataTable.Cell style={{ color: 'green' }}>Passed</DataTable.Cell>
-  //       ) : (
-  //         <DataTable.Cell style={{ color: 'red' }}>Failed</DataTable.Cell>
-  //       );
-  //     }
-  //   },    
-  //   // {
-  //   //   header: 'Throughput',
-  //   //   accessor: 'throughput',
-  //   //   ratioWidth: 1,
-  //   // },
-  // ];
-
-  // return (
-  //   <Flex width='100%' flexDirection='column' justifyContent='center' gap={16}>
-  //     <Flex width='100%' flexDirection='row' justifyContent='space-between' alignItems="center">
-  //       <Heading level={1}>{props.name ? props.name : "Scenario"}</Heading>
-  //       <TimeframeSelector value={time} onChange={setTime}/>
-  //     </Flex>
-  //     <Container>
-  //       <CustomTabs
-  //         title1="Response Time"
-  //         title2="Failure Rate"
-  //         title3="CPU Usage"
-  //         title4="Throughput"
-  //         RTRecords={filterDataByTime(getResponseTimeData(time, responseTimeData).records)}
-  //         RTTypes={getResponseTimeData(time, responseTimeData).types}
-  //         FRRecords={filterDataByTime(getFailureRateData(time, failureRateData).records)}
-  //         FRTypes={getFailureRateData(time, failureRateData).types}
-  //         CPURecords={filterDataByTime(getCpuUsageData(time, cpuUsageData).records)}
-  //         CPUTypes={getCpuUsageData(time, cpuUsageData).types}
-  //         TPRecords={filterDataByTime(getThroughputData(time, throughputData).records)}
-  //         TPTypes={getThroughputData(time, throughputData).types}
-  //         start_time={time?.from.absoluteDate}
-  //         end_time={time?.to.absoluteDate}
-  //       />
-  //     </Container>
-  
-  //     <Flex flexDirection="row" alignItems="center">
-  //       <Button color="primary" variant="emphasized" width="5%" disabled={selectedRowsData.length === 0 || selectedRowsData.length > 2}>
-  //         {selectedRowsData.length > 0 && selectedRowsData.length < 3 ? <Link as={RouterLink} to="/Data">{selectedRowsData.length > 1 ? "Compare" : "Details"}</Link> : "Disabled"}
-  //       </Button>
-  //       {selectedRowsData.length > 2 && <Text>Maximum 2 rows are allowed for comparison</Text>}
-  //     </Flex>
-  
-  //     <DataTable 
-  //       data={filterDataByTime(tableQueryResult.records)}
-  //       columns={columns} 
-  //       sortable
-  //       defaultSelectedRows={selectedRows}
-  //       onRowSelectionChange={myRowSelectionChangedListener}
-  //       selectableRows
-  //       variant={{
-  //         rowDensity: 'default',
-  //         rowSeparation: 'zebraStripes',
-  //         verticalDividers: true,
-  //         contained: true,
-  //       }}
-  //     >
-  //       <DataTable.Pagination />
-  //     </DataTable>
-  //   </Flex>
-  // );  
-
-  const [timeframe, setTimeframe] = useState('-72h');
+export const Scenario = () => {
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
       absoluteDate: subHours(new Date(), 2).toISOString(),
@@ -166,63 +25,37 @@ export const Scenario = (props) => {
     },
   });
 
-  console.log(time);
-  
-
-  const matchTags = (props) => {
-    const sets = new Map<any, { name: any, id: any }>();
-    props.queryResult.data?.records.forEach(record => {
-      if (record?.tags && Array.isArray(record?.tags)) {
-        for (const tag of record.tags) {
-          if (tag && typeof tag === 'string' && props.row.some(transaction => tag.includes(transaction))) {
-            // Use id as the unique key in Map
-            sets.set(record.id, { name: record.name, id: record.id });
-          }
-        }
-      }
-    });
-    return sets;
-  }
-
-  const error = useDqlQuery({
+  const run = useDqlQuery({
     body: {
-      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle }
-              | sort arrayAvg(error) desc
-              | limit 20`
+      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle }
+        | summarize by:{timeframe, run, cycle} , transaction = collectArray(transaction)`
     }
   });
-
-  console.log(error);
-
-  const meantime = useDqlQuery({
-    body: {
-      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle}
-              | fieldsRemove meantime
-              | summarize by:{timeframe, run, cycle} , transaction = collectArray(transaction)`
-    }
-  });
-
-  const cpuUsage = useDqlQuery({
-    body: {
-      query: `timeseries interval: 10m, usage = avg(dt.host.cpu.usage), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { dt.entity.host }
-              | sort arrayAvg(usage) desc
-              | fieldsAdd entityName(dt.entity.host)
-              | limit 20`
-    }
-  });
-    
 
   const columns: TableColumn[] = [
     // {
     //   ...TABLE_EXPANDABLE_DEFAULT_COLUMN
     // },
     {
-      header: "Run",
+      header: "Cycle|Run",
       accessor: "run",
       cell: ({row}) => {
+        const specificTimeUsage = useDqlQuery({
+          body: {
+            query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, cycle }
+                    | filter run == "${row.original.run}" and cycle == "${row.original.cycle}"`
+          }
+        }); 
+
+        const datapoints = specificTimeUsage && specificTimeUsage.data && convertToTimeseries(specificTimeUsage.data?.records, specificTimeUsage.data?.types);
+        const start = datapoints && datapoints[0].datapoints[0].start?.toISOString();
+        const end = datapoints && datapoints[0].datapoints[datapoints.length-1].end?.toISOString();
+
         return (
           <DataTable.Cell>
-            {row.original.cycle + row.original.run}
+            <Link as={RouterLink} to="/details" state={{run: row.original.run, cycle: row.original.cycle, from: start, to: end}}>
+              {row.original.cycle.charAt(0).toUpperCase() + row.original.cycle.slice(-2) + "|" + row.original.run.charAt(0).toUpperCase() + row.original.run.slice(-2)}
+            </Link>
           </DataTable.Cell>
         )
       },
@@ -248,12 +81,12 @@ export const Scenario = (props) => {
       header: "Host(s)",
       accessor: "process",
       cell: ({row}) => {
-        const hosts = matchTags({queryResult: hostTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
+        const hosts = MatchTags({queryResult: hostTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
         // Convert Map values to an array and map to add external link
         const hostLinks = Array.from(hosts.values()).map(host => ({
           name: host.name,
-          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.services/ui/entity/${host.id}`
+          link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${host.id}`
         }));
 
         return (<DataTable.Cell>
@@ -269,12 +102,12 @@ export const Scenario = (props) => {
       header: "Process(es)",
       accessor: "service",
       cell: ({row}) => {
-        const processes = matchTags({queryResult: processTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
+        const processes = MatchTags({queryResult: processTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
         // Convert Map values to an array and map to add external link
         const processLinks = Array.from(processes.values()).map(process => ({
           name: process.name,
-          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.technologies/#processgroupdetails;id=${process.id}`
+          link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.technologies/#processgroupdetails;id=${process.id}`
         }));
 
         return (<DataTable.Cell>
@@ -290,19 +123,43 @@ export const Scenario = (props) => {
       header: "Service(s)",
       accessor: "transaction",
       cell: ({row}) => {
-        const services = matchTags({queryResult: serviceTagsQueryResult(time?.from.absoluteDate, time?.to.absoluteDate), row: row.original.transaction});
+        const services = MatchTags({queryResult: serviceTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
-        // Convert Map values to an array and map to add external link
-        const serviceLinks = Array.from(services.values()).map(service => ({
+        let serviceLinks = Array.from(services.values()).map((service, index) => ({
+          index: index + 1,
           name: service.name,
-          link: `https://qkz58401.apps.dynatrace.com/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`
+          link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`,
         }));
 
-        return (<DataTable.Cell>
-          <ExternalLinksWithNumberInput
-            links ={serviceLinks}
-          />
-        </DataTable.Cell>)
+        console.log(serviceLinks);
+
+        return (
+          <DataTable.Cell>
+            <Flex flexDirection="row">
+              <Flex flexDirection="column">
+                {serviceLinks.length === 0 ? <Text>N/A</Text> : serviceLinks.map(item => {
+                  return (
+                    <Flex flexDirection="row">
+                      <Text>{item.index}. </Text>
+                      <ExternalLink href={item.link}>
+                        <Link>{item.name}</Link>
+                      </ExternalLink>
+                    </Flex>
+                  )
+                })}
+              </Flex>
+              <Flex justifyContent="end" alignItems="center">
+                <Link as={RouterLink} to="" state={{serviceLinks}}>Details</Link>
+              </Flex>
+            </Flex>
+          </DataTable.Cell>
+        )
+
+        // return (<DataTable.Cell>
+        //   <ExternalLinksWithNumberInput
+        //     links ={serviceLinks}
+        //   />
+        // </DataTable.Cell>)
       },
       autoWidth: true,
       ratioWidth: 2
@@ -311,14 +168,48 @@ export const Scenario = (props) => {
       header: "Pass/Fail",
       accessor: "grade",
       cell: ({row}) => {
+        const error = errorQueryResult({from: row.original.timeframe.start.toISOString(), to: row.original.timeframe.end.toISOString(), run: row.original.run, cycle: row.original.cycle});
+        const meantime = meantimeQueryResult({from: row.original.timeframe.start.toISOString(), to: row.original.timeframe.end.toISOString(), run: row.original.run, cycle: row.original.cycle});
+
+        const host = MatchTags({queryResult: hostTagsQueryResult({from: row.original.timeframe.start.toISOString(), to: row.original.timeframe.end.toISOString()}), row: row.original.transaction});
+        const cpu = cpuUsageQueryResult({from: row.original.timeframe.start.toISOString(), to: row.original.timeframe.end.toISOString()});
+        const memory = memoryUsageQueryResult({from: row.original.timeframe.start.toISOString(), to: row.original.timeframe.end.toISOString()});
+
+        const errorValue = error.data?.records.filter(item => item?.run === row.original.run).map(item =>  item && item.error);
+        const timeValue = meantime.data?.records.filter(item => item?.run === row.original.run).map(item => item && item.meantime);
+        const cpuValue: any[] = [];
+        const memoryValue: any[] = [];
+
+        // Use a single loop for host and cpu/memory usage mapping
+        host.forEach(item => {
+          const matchingCpuHost = cpu.data?.records.find(record => record?.id === item.id);
+          if (matchingCpuHost) {
+            cpuValue.push(matchingCpuHost.usage);
+          }
+
+          const matchingMemoryHost = memory.data?.records.find(record => record?.id === item.id);
+          if (matchingMemoryHost) {
+            memoryValue.push(matchingMemoryHost.usage);
+          }
+        });
+        const marks = PassCriteria({error: errorValue, meantime: timeValue, cpuUsage: cpuValue, memoryUsage: memoryValue});
+        const totalMarks = marks.reduce((total, mark) => total + (mark.score || 0), 0);
         return (
           <>
-            {error.isLoading && "N/A"}
-            {error.data && 
-              <DataTable.Cell>
+            {(error.isLoading || meantime.isLoading || cpu.isLoading || memory.isLoading
 
-              </DataTable.Cell>
-            }
+            ) ? (
+              <SkeletonText/>
+            ) : (marks && marks.length > 0 ? (
+              // Sum the scores in marks
+              totalMarks !== (marks.length) ? (
+                <DataTable.Cell style={{ color: 'red' }}>Failed</DataTable.Cell>
+              ) : (
+                <DataTable.Cell style={{ color: 'green' }}>Passed</DataTable.Cell>
+              )
+            ) : (
+              <DataTable.Cell>No Marks</DataTable.Cell>
+            ))}
           </>
         )
       },
@@ -332,9 +223,9 @@ export const Scenario = (props) => {
       <Flex justifyContent="end" marginBottom={12}>
         <TimeframeSelector value={time} onChange={setTime} />
       </Flex>
-      {meantime.isLoading && <ProgressCircle/>}
-      {meantime.data && <DataTable 
-        data={meantime.data?.records} 
+      {run.isLoading && <ProgressCircle/>}
+      {run.data && <DataTable 
+        data={run.data?.records} 
         columns={columns}
         sortable
         resizable
