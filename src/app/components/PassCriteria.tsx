@@ -11,8 +11,8 @@ export const PassCriteria = (props) => {
       marks.push({ category, score, threshold, unit });
     };
 
-    addMark("error", props.error, 1, "");
-    addMark("meantime", props.meantime, 99.99, "ms");
+    addMark("error", props.error, 0, "");
+    addMark("meantime", props.meantime, 99999999.99, "ms");
     addMark("cpu", props.cpuUsage, 95.0, "%");
     addMark("memory", props.memoryUsage, 95.0, "%");
 

@@ -6,7 +6,7 @@ import { ExternalLinks } from "../components/ExternalLinks";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { subHours } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
-import { ExternalLink, Link } from '@dynatrace/strato-components/typography';
+import { ExternalLink, Link, List } from '@dynatrace/strato-components/typography';
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags } from "../components/MatchTags";
 import { PassCriteria } from "../components/PassCriteria";
@@ -79,7 +79,7 @@ export const Scenario = () => {
     },
     {
       header: "Host(s)",
-      accessor: "process",
+      accessor: "host",
       cell: ({row}) => {
         const hosts = MatchTags({queryResult: hostTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
@@ -100,7 +100,7 @@ export const Scenario = () => {
     },
     {
       header: "Process(es)",
-      accessor: "service",
+      accessor: "process",
       cell: ({row}) => {
         const processes = MatchTags({queryResult: processTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
@@ -121,7 +121,7 @@ export const Scenario = () => {
     },
     {
       header: "Service(s)",
-      accessor: "transaction",
+      accessor: "service",
       cell: ({row}) => {
         const services = MatchTags({queryResult: serviceTagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate}), row: row.original.transaction});
 
@@ -155,6 +155,24 @@ export const Scenario = () => {
       },
       autoWidth: true,
       ratioWidth: 2
+    },
+    {
+      header: 'Transaction(s)',
+      accessor: 'transaction',
+      cell: ({row}) => {
+        console.log(row.original.transaction)
+        return (
+          <DataTable.Cell>
+            <List>
+              {row.original.transaction.map(transaction => (
+                <Text>{transaction}</Text>
+              ))}
+            </List>
+          </DataTable.Cell>
+        )
+      },
+      autoWidth: true,
+      ratioWidth: 1
     },
     {
       header: "Pass/Fail",
@@ -220,20 +238,12 @@ export const Scenario = () => {
         data={run.data?.records} 
         columns={columns}
         sortable
-        resizable
         variant={{
           rowDensity: 'default',
           rowSeparation: 'zebraStripes',
           verticalDividers: true,
           contained: true,
         }}>
-        {/* <DataTable.ExpandableRow>
-          {({row}) => {
-            return (
-              <></>
-            )
-          }}
-        </DataTable.ExpandableRow> */}
         <DataTable.Pagination />
       </DataTable>}
     </Container>

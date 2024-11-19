@@ -4,10 +4,8 @@ import ReactFlow, {
   Background,
   Controls,
   Position,
-  addEdge,
   Node,
   Edge,
-  Connection,
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
