@@ -3,7 +3,7 @@ import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 export const hostTagsQueryResult = ({from, to}) => { 
   return useDqlQuery({
   body: {
-    query: `fetch dt.entity.host, from: "${from}", to: "${to}"
+    query: `fetch dt.entity.host, from: -30d, to: "${to}"
             | fieldsAdd tags
             | filter isNotNull(tags)
             | fieldsRename name = entity.name`
@@ -13,7 +13,7 @@ export const hostTagsQueryResult = ({from, to}) => {
 export const processTagsQueryResult = ({from, to}) => { 
   return useDqlQuery({
   body: {
-    query: `fetch dt.entity.process_group, from: "${from}", to: "${to}"
+    query: `fetch dt.entity.process_group, from: -30d, to: "${to}"
             | fieldsAdd tags
             | filter isNotNull(tags)
             | fieldsRename name = entity.name`
@@ -23,7 +23,7 @@ export const processTagsQueryResult = ({from, to}) => {
 export const serviceTagsQueryResult = ({from, to}) => { 
   return useDqlQuery({
   body: {
-    query: `fetch dt.entity.service, from: -7d, to: "${to}"
+    query: `fetch dt.entity.service, from: -30d, to: "${to}"
             | fieldsAdd tags
             | filter isNotNull(tags)
             | fieldsRename name = entity.name`
@@ -34,8 +34,8 @@ export const errorQueryResult = ({from, to, run, cycle}) => {
   return useDqlQuery({
     body: {
       query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${from}", to: "${to}", by: { run, cycle }
-        | filter run == "${run}" and cycle == "${cycle}"
-        | sort arrayAvg(error) desc`
+      | filter run == "${run}" and cycle == "${cycle}"
+      | sort arrayAvg(error) desc`
   }
 })};
 
@@ -48,6 +48,21 @@ export const meantimeQueryResult = ({from, to, run, cycle}) => {
   }
 })};
 
+export const errorQueryResultScenario = ({from, to}) => {
+  return useDqlQuery({
+    body: {
+      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${from}", to: "${to}", by: { run, cycle }
+      | sort arrayAvg(error) desc`
+  }
+})};
+
+export const meantimeQueryResultScenario = ({from, to}) => {
+  return useDqlQuery({
+  body: {
+    query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${from}", to: "${to}", by: { run, cycle }
+      | sort arrayAvg(meantime) desc`
+  }
+})};
 
 export const cpuUsageQueryResult = ({from, to}) => {
   return useDqlQuery({

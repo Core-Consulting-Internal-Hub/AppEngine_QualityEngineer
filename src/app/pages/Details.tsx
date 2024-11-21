@@ -1,12 +1,17 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { Container, Flex, Heading, List, SkeletonText, Text } from "@dynatrace/strato-components";
-import { convertToTimeseries, Tab, Tabs, TimeframeSelector, TimeframeV2, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import { subDays } from "date-fns"
+import { ChartSeriesAction, convertToTimeseries, Tab, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
 import React, { useState } from "react";
-import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult } from "../Data/QueryResult";
+import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
-import { MatchTags } from "../components/MatchTags";
-import { useLocation } from "react-router-dom";
+import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
+import { useLocation, useNavigate } from "react-router-dom";
+import { MagnifyingGlassIcon } from "@dynatrace/strato-icons";
+import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
+
+interface ExtendedTimeseries extends Timeseries {
+  name: string[];
+}
 
 export const Details = () => {
   const location = useLocation();
@@ -20,13 +25,27 @@ export const Details = () => {
     }
   });
 
-  console.log(runQuery)
+  
 
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
   const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
   const meantime = meantimeQueryResult({from: from, to: to, run: run, cycle: cycle});
 
   const host = MatchTags({queryResult: hostTagsQueryResult({from: from, to: to}), row: transactions});
+  const service = MatchTagsWithTags({queryResult: serviceTagsQueryResult({from: from, to: to}), row: transactions});
+  
+  const hostLinks = Array.from(host.values()).map((host) => ({
+    name: host.name,
+    link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${host.id}`,
+  }));
+
+  const serviceLinks = Array.from(service.values()).map((service, index) => ({
+    index: index + 1,
+    name: service.name,
+    link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`,
+    tag: service.tags
+  }));
+
   const cpu = cpuUsageQueryResult({from: from, to: to});
   const memory = memoryUsageQueryResult({from: from, to: to});
 
@@ -123,7 +142,36 @@ export const Details = () => {
         <Tabs defaultIndex={0}>
           <Tab title={"Error"}>
             {error.data != null && 
-              <TimeseriesChart data={convertToTimeseries(errorData, error.data?.types)}>
+              <TimeseriesChart 
+                data={convertToTimeseries(errorData, error.data?.types)}
+                seriesActions={(seriesActions) => {
+                  const action = seriesActions as ExtendedTimeseries
+                  const link = action.name.reduce((result, item) => {
+                    if (result) return result; // Stop searching if a match is found
+                    return serviceLinks.find((service) =>
+                      service.tag.some((tag) => {
+                        const tagValue = tag.split(":");
+                        return tagValue[tagValue.length - 1] === item;
+                      })
+                    );
+                  }, null);
+
+                  return (
+                    <ChartSeriesAction>
+                      <ChartSeriesAction.Item
+                        onSelect={() => {
+                          window.open(link?.link)
+                        }}
+                      >
+                        <ChartSeriesAction.ItemIcon>
+                          <MagnifyingGlassIcon />
+                        </ChartSeriesAction.ItemIcon>
+                        {link?.name}
+                      </ChartSeriesAction.Item>
+                    </ChartSeriesAction>
+                  );
+                }}
+              >
                 <TimeseriesChart.Legend hidden/>
                 <TimeseriesChart.YAxis label="Number of Error"/>
                 <TimeseriesChart.XAxis
@@ -135,7 +183,36 @@ export const Details = () => {
           </Tab>
           <Tab title={"Mean Time"}>
             {meantime.data != null && 
-              <TimeseriesChart data={convertToTimeseries(timeData, meantime.data?.types)}>
+              <TimeseriesChart 
+                data={convertToTimeseries(timeData, meantime.data?.types)}
+                seriesActions={(seriesActions) => {
+                  const action = seriesActions as ExtendedTimeseries
+                  const link = action.name.reduce((result, item) => {
+                    if (result) return result; // Stop searching if a match is found
+                    return serviceLinks.find((service) =>
+                      service.tag.some((tag) => {
+                        const tagValue = tag.split(":");
+                        return tagValue[tagValue.length - 1] === item;
+                      })
+                    );
+                  }, null);
+
+                  return (
+                    <ChartSeriesAction>
+                      <ChartSeriesAction.Item
+                        onSelect={() => {
+                          window.open(link?.link)
+                        }}
+                      >
+                        <ChartSeriesAction.ItemIcon>
+                          <MagnifyingGlassIcon />
+                        </ChartSeriesAction.ItemIcon>
+                        {link?.name}
+                      </ChartSeriesAction.Item>
+                    </ChartSeriesAction>
+                  );
+                }}
+              >
                 <TimeseriesChart.Legend hidden/>
                 <TimeseriesChart.YAxis label="Mean Time(ms)"/>
                 <TimeseriesChart.XAxis
@@ -147,24 +224,76 @@ export const Details = () => {
           </Tab>
           <Tab title={"CPU Usage"}>
             {cpu.data != null && 
-              <TimeseriesChart data={convertToTimeseries(cpuData, cpu.data?.types)}>
+              <TimeseriesChart 
+                data={convertToTimeseries(cpuData, cpu.data?.types)}
+                seriesActions={(seriesActions) => {
+                  const action = seriesActions as ExtendedTimeseries
+                  const link = action.name.reduce((result, item) => {
+                    if (result) return result; // Stop searching if a match is found
+                    return hostLinks.find((host) =>
+                      host.name === item
+                    );
+                  }, null);
+
+                  return (
+                    <ChartSeriesAction>
+                      <ChartSeriesAction.Item
+                        onSelect={() => {
+                          window.open(link?.link)
+                        }}
+                      >
+                        <ChartSeriesAction.ItemIcon>
+                          <MagnifyingGlassIcon />
+                        </ChartSeriesAction.ItemIcon>
+                        {link?.name}
+                      </ChartSeriesAction.Item>
+                    </ChartSeriesAction>
+                  );
+                }}
+              >
                 <TimeseriesChart.Legend hidden/>
                 <TimeseriesChart.YAxis label="CPU Usage(%)"/>
                 <TimeseriesChart.XAxis
                   label="Time"
-                  min={from}
+                  min={"-30d"}
                   max={to}
                 />
               </TimeseriesChart>}
           </Tab>
           <Tab title={"Memory Usage"}>
             {memory.data != null && 
-              <TimeseriesChart data={convertToTimeseries(memoryData, memory.data?.types)}>
+              <TimeseriesChart 
+                data={convertToTimeseries(memoryData, memory.data?.types)}
+                seriesActions={(seriesActions) => {
+                  const action = seriesActions as ExtendedTimeseries
+                  const link = action.name.reduce((result, item) => {
+                    if (result) return result; // Stop searching if a match is found
+                    return hostLinks.find((host) =>
+                      host.name === item
+                    );
+                  }, null);
+
+                  return (
+                    <ChartSeriesAction>
+                      <ChartSeriesAction.Item
+                        onSelect={() => {
+                          window.open(link?.link)
+                        }}
+                      >
+                        <ChartSeriesAction.ItemIcon>
+                          <MagnifyingGlassIcon />
+                        </ChartSeriesAction.ItemIcon>
+                        {link?.name}
+                      </ChartSeriesAction.Item>
+                    </ChartSeriesAction>
+                  );
+                }}
+              >
                 <TimeseriesChart.Legend hidden/>
                 <TimeseriesChart.YAxis label="Memory Usage(%)"/>
                 <TimeseriesChart.XAxis
                   label="Time"
-                  min={from}
+                  min={"-30d"}
                   max={to}
                 />
               </TimeseriesChart>}
