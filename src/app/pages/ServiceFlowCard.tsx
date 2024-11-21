@@ -139,7 +139,7 @@ export const ServiceFlowCard = () => {
         },
       })) || []
   );
-
+  
   const [links, setLinks] = useState<Record<string, string[]>>({});
   const [tempInputValues, setTempInputValues] = useState<string>(""); // Raw input string
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -148,7 +148,7 @@ export const ServiceFlowCard = () => {
     null
   );
 
-  const transactionQueryResult = useDqlQuery({
+  const responseTimeQueryResult = useDqlQuery({
     body: {
       query: 
       selectedService
@@ -156,7 +156,20 @@ export const ServiceFlowCard = () => {
         `
         timeseries meantime = avg(jmeter.usermetrics.transaction.meantime),from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { transaction, cycle, run }
       | fieldsAdd arrayAvg(meantime)
-      | summarize by:{cycle, run, transaction}, meantime = avg(arrayAvg(meantime))
+      | summarize by:{cycle, run, transaction}, responseTime = avg(arrayAvg(meantime))
+        `
+        : "", // No query when no service is selected
+    },
+  });
+
+  const throughputQueryResult = useDqlQuery({
+    body: {
+      query: 
+      selectedService
+        ? 
+        `
+        timeseries count = avg(jmeter.usermetrics.transaction.count), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { cycle, run, transaction }
+        | summarize by:{cycle, run, transaction}, throughput = avg(arrayAvg(count))
         `
         : "", // No query when no service is selected
     },
@@ -223,38 +236,115 @@ export const ServiceFlowCard = () => {
       header: "Transaction",
       accessor: "transaction",
       autoWidth: true,
+      cell:({row}) => {
+        let tags = row.original.tags;
+      
+        // Check if tags is a string (which it seems to be based on your logs)
+        if (typeof tags === 'string') {
+          // Split the string by commas into an array
+          tags = tags.split(',').map(tag => tag.trim()); // Handle comma-separated tags and trim any extra spaces
+        }
+
+        // Process tags to create a cleaned version
+        const cleanedTags = tags.map((tag) =>
+          tag.replace("Transaction:", "").toLowerCase()
+        );
+      
+        return (
+          <DataTable.Cell>
+            {cleanedTags.join(", ") || "N/A"}
+          </DataTable.Cell>
+        );
+      }
     },
     {
-      header: "Meantime",
-      accessor: "meantime",
+      header: "Mean Response Time",
+      accessor: "responseTime",
       autoWidth: true,
+      cell: ({ row }) => {
+        let tags = row.original.tags;
+      
+        // Check if tags is a string (which it seems to be based on your logs)
+        if (typeof tags === 'string') {
+          // Split the string by commas into an array
+          tags = tags.split(',').map(tag => tag.trim()); // Handle comma-separated tags and trim any extra spaces
+        }
+
+        // Process tags to create a cleaned version
+        const cleanedTags = tags.map((tag) =>
+          tag.replace("Transaction:", "")
+        );
+      
+        // Assuming the cleanedTags array has a corresponding responseTime entry
+        const responseTime = cleanedTags
+          .map((tag) => responseTimeQueryResult?.data?.records?.find((record) => record?.transaction === tag))
+          .filter(Boolean)
+          .map((matchedRecord) => matchedRecord?.responseTime || "N/A");
+      
+        return (
+          <DataTable.Cell>
+            {responseTime.join(", ") || "N/A"}
+          </DataTable.Cell>
+        );
+      },
     },
+    {
+      header: "Throughput",
+      accessor: "throughput",
+      autoWidth: true,
+      cell: ({ row }) => {
+        let tags = row.original.tags;
+        
+        // Check if tags is a string (which it seems to be based on your logs)
+        if (typeof tags === 'string') {
+          // Split the string by commas into an array
+          tags = tags.split(',').map(tag => tag.trim()); // Handle comma-separated tags and trim any extra spaces
+        }
+        // Process tags to create a cleaned version
+        const cleanedTags = tags.map((tag) =>
+          tag.replace("Transaction:", "")
+        );
+      
+        // Assuming the cleanedTags array has a corresponding throughput entry
+        const matchedThroughput = cleanedTags
+          .map(tag => throughputQueryResult?.data?.records?.find(record => record?.transaction === tag))
+          .find(Boolean); // Get the first matched record
+
+        // Get the throughput value or display "N/A" if no match found
+        const throughput = matchedThroughput?.throughput || "N/A";
+        return (
+          <DataTable.Cell>
+            {throughput}
+          </DataTable.Cell>
+        );
+      },
+    }
   ];
   
   // Match transactions with processed tags
-  const getMatchedTransactions = () => {
-    if (!transactionQueryResult.data || !serviceQueryResult.data) return ["This is empty"];
+  // const getMatchedTransactions = () => {
+  //   if (!responseTimeQueryResult.data || !serviceQueryResult.data) return [];
 
-    const transactions = transactionQueryResult.data.records;
-    const services = serviceQueryResult.data.records;
+  //   const responseTime = responseTimeQueryResult.data.records;
+  //   const services = serviceQueryResult.data.records;
 
-    // Process service tags: remove "Transaction:" prefix
-    const processedTags = services.map((service) => ({
-      ...service,
-      cleanedTag: service?.tags?.toString().replace("Transaction:", "").toLowerCase(),
-    }));
+  //   // Process service tags: remove "Transaction:" prefix
+  //   const processedTags = services.map((service) => ({
+  //     ...service,
+  //     cleanedTag: service?.tags?.toString().replace("Transaction:", "").toLowerCase(),
+  //   }));
 
-    // Match transactions by comparing with cleaned tags
-    return transactions.filter((transaction) =>
-      processedTags.some(
-        (service) =>
-          service.cleanedTag && 
-          service.cleanedTag === transaction?.transaction?.toString().toLowerCase()
-      )
-    );
-  };
+  //   // Match transactions by comparing with cleaned tags
+  //   return responseTime.filter((transaction) =>
+  //     processedTags.some(
+  //       (service) =>
+  //         service.cleanedTag && 
+  //         service.cleanedTag === transaction?.transaction?.toString().toLowerCase()
+  //     )
+  //   );
+  // };
 
-  const matchedTransactions = getMatchedTransactions();
+  // const matchedTransactions = getMatchedTransactions();
 
   // On save, update the `links` state with the parsed input
   const handleSaveClick = () => {
@@ -271,7 +361,7 @@ export const ServiceFlowCard = () => {
     setNodes(generateNodes(sequences, handleServiceClick, links));
     setEdges(generateEdges(links));
   }, [links]);
-
+  
   return (
     <>
       <Modal title={"Sequence"} show={state} onDismiss={() => setState(false)}>
@@ -322,8 +412,8 @@ export const ServiceFlowCard = () => {
       </div>
       
       <div>
-        {/* {transactionQueryResult.data ? (
-          <pre>{JSON.stringify(transactionQueryResult.data.records, null, 2)}</pre>
+        {/* {responseTimeQueryResult.data ? (
+          <pre>{JSON.stringify(responseTimeQueryResult.data.records, null, 2)}</pre>
         ) : (
           <Text>No trans</Text>
         )}
@@ -342,9 +432,9 @@ export const ServiceFlowCard = () => {
         {selectedService != null ? (
           <>
             <h1>You have selected: {selectedService.serviceName}</h1>
-            {transactionQueryResult.data ? (
+            {serviceQueryResult.data ? (
               <DataTable
-                data={matchedTransactions}
+                data={serviceQueryResult.data?.records}
                 columns={columns}
               />
             ) : (
