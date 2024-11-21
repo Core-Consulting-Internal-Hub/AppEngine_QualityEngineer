@@ -12,6 +12,11 @@ import "reactflow/dist/style.css";
 import { Modal } from "@dynatrace/strato-components-preview/overlays";
 import { Text, Button, Flex } from "@dynatrace/strato-components";
 import { useLocation } from "react-router-dom";
+import { DataTable, TableColumn, TimeframeV2 } from "@dynatrace/strato-components-preview";
+import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
+import { serviceTagsQueryResult } from "../Data/QueryResult";
+import { MatchTagsWithTags } from "../components/MatchTags";
+import { subHours, subDays } from "date-fns"
 
 // Type for SequenceData
 type SequenceData = {
@@ -25,7 +30,7 @@ type SequenceData = {
 };
 
 // Function to generate nodes with positions
-const generateNodes = (data: SequenceData[], links: Record<string, string[]>): Node[] => {
+const generateNodes = (data: SequenceData[], onClick: (service: SequenceData) => void, links: Record<string, string[]>): Node[] => {
   const ySpacing = 150;
   const xSpacing = 300;
 
@@ -53,7 +58,7 @@ const generateNodes = (data: SequenceData[], links: Record<string, string[]>): N
     id: service.id,
     data: {
       label: (
-        <div style={{ textAlign: "center", color: Colors.Text.Primary.Default }}>
+        <div style={{ textAlign: "center", color: Colors.Text.Primary.Default }} onClick={() => onClick(service)}>
           <strong style={{ fontSize: "20px" }}>{service.serviceName}</strong>
           <br />
           <span>Response Time: {service.metrics.responseTime}</span>
@@ -107,45 +112,163 @@ const generateEdges = (links: Record<string, string[]>): Edge[] => {
 };
 
 export const ServiceFlowCard = () => {
+  const [time, setTime] = useState<TimeframeV2 | null>({
+    from: {
+      absoluteDate: subDays(new Date(), 30).toISOString(),
+      value: 'now()-30d',
+      type: 'expression',
+    },
+    to: {
+      absoluteDate: new Date().toISOString(),
+      value: 'now()',
+      type: 'expression',
+    },
+  });
   const location = useLocation();
-  const {services, cycle, run} = location.state || {};
+  const { services, cycle, run } = location.state || {};
   const [state, setState] = useState(true);
-  const [sequences, setSequences] = useState<SequenceData[]>(() =>
-    services?.map((item, index) => ({
-      id: (index + 1).toString(), // Use index as a string for the ID
-      serviceName: item.name,
-      href: item.link,
-      metrics: {
-        responseTime: "100ms", // Default metric value; you can modify this
-        throughput: "100rps", // Default metric value; you can modify this
-      },
-    })) || []
+  const [sequences, setSequences] = useState<SequenceData[]>(
+    () =>
+      services?.map((item, index) => ({
+        id: (index + 1).toString(),
+        serviceName: item.name,
+        href: item.link,
+        metrics: {
+          responseTime: "100ms",
+          throughput: "100rps",
+        },
+      })) || []
   );
-  
+
   const [links, setLinks] = useState<Record<string, string[]>>({});
   const [tempInputValues, setTempInputValues] = useState<string>(""); // Raw input string
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [selectedService, setSelectedService] = useState<SequenceData | null>(
+    null
+  );
 
-  // Parse input string and update links
-  const parseInput = () => {
-    const newLinks: Record<string, string[]> = {};
-    const lines = tempInputValues.split("\n");
+  const transactionQueryResult = useDqlQuery({
+    body: {
+      query: 
+      selectedService
+        ? 
+        `
+        timeseries meantime = avg(jmeter.usermetrics.transaction.meantime),from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { transaction, cycle, run }
+      | fieldsAdd arrayAvg(meantime)
+      | summarize by:{cycle, run, transaction}, meantime = avg(arrayAvg(meantime))
+        `
+        : "", // No query when no service is selected
+    },
+  });
 
-    lines.forEach((line) => {
-      const [key, targets] = line.split("->");
-      if (key && targets) {
-        newLinks[key.trim()] = targets.split(",").map((t) => t.trim());
+  const serviceQueryResult = useDqlQuery({
+    body:{
+      query:
+      selectedService
+        ? 
+        `
+        fetch dt.entity.service, from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}"
+          | fieldsRename service = entity.name
+          | filter service == "${selectedService.serviceName}"
+          | fieldsAdd tags
+          | filter isNotNull(tags)
+          | expand tags
+        `
+        : "", // No query when no service is selected
+    },
+  })
+
+  const parseComplexInput = (input: string): Record<string, string[]> => {
+    const links: Record<string, string[]> = {};
+  
+    // Helper to add a link to the links map
+    const addLink = (from: string, to: string) => {
+      if (!links[from]) {
+        links[from] = [];
+      }
+      if (!links[from].includes(to)) {
+        links[from].push(to);
+      }
+    };
+  
+    // Recursive function to process a single line of the input
+    const processLine = (nodes: string[]) => {
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const current = nodes[i].trim();
+        const nextPart = nodes[i + 1].trim();
+  
+        // Handle branching (e.g., 2,3)
+        const nextNodes = nextPart.split(",").map((n) => n.trim());
+  
+        nextNodes.forEach((nextNode) => {
+          addLink(current, nextNode);
+        });
+      }
+    };
+  
+    // Process each line of input
+    input.split("\n").forEach((line) => {
+      const nodes = line.split("->").map((n) => n.trim());
+      if (nodes.length > 1) {
+        processLine(nodes);
       }
     });
+  
+    return links;
+  };
 
-    setLinks(newLinks);
+  const columns: TableColumn[] = [
+    {
+      header: "Transaction",
+      accessor: "transaction",
+      autoWidth: true,
+    },
+    {
+      header: "Meantime",
+      accessor: "meantime",
+      autoWidth: true,
+    },
+  ];
+  
+  // Match transactions with processed tags
+  const getMatchedTransactions = () => {
+    if (!transactionQueryResult.data || !serviceQueryResult.data) return ["This is empty"];
+
+    const transactions = transactionQueryResult.data.records;
+    const services = serviceQueryResult.data.records;
+
+    // Process service tags: remove "Transaction:" prefix
+    const processedTags = services.map((service) => ({
+      ...service,
+      cleanedTag: service?.tags?.toString().replace("Transaction:", "").toLowerCase(),
+    }));
+
+    // Match transactions by comparing with cleaned tags
+    return transactions.filter((transaction) =>
+      processedTags.some(
+        (service) =>
+          service.cleanedTag && 
+          service.cleanedTag === transaction?.transaction?.toString().toLowerCase()
+      )
+    );
+  };
+
+  const matchedTransactions = getMatchedTransactions();
+
+  // On save, update the `links` state with the parsed input
+  const handleSaveClick = () => {
+    const parsedLinks = parseComplexInput(tempInputValues);
+    setLinks(parsedLinks); // Update the links state
     setState(false); // Close the modal
   };
 
-  // Update nodes and edges whenever links change
+  const handleServiceClick = (service: SequenceData) => {
+    setSelectedService(service);
+  };
+
   useEffect(() => {
-    setNodes(generateNodes(sequences, links));
+    setNodes(generateNodes(sequences, handleServiceClick, links));
     setEdges(generateEdges(links));
   }, [links]);
 
@@ -154,7 +277,7 @@ export const ServiceFlowCard = () => {
       <Modal title={"Sequence"} show={state} onDismiss={() => setState(false)}>
         <div style={{ padding: "20px" }}>
           {sequences.map((item) => (
-            <Flex flexDirection="row">
+            <Flex flexDirection="row" key={item.id}>
               <Text>ID: {item.id}</Text>
               <Text>Service Name: {item.serviceName}</Text>
             </Flex>
@@ -174,20 +297,65 @@ export const ServiceFlowCard = () => {
             }}
             placeholder={"1->2,3\n2->3"}
           />
-          <Button onClick={parseInput}>Save</Button>
+          <Button onClick={handleSaveClick}>Save</Button> 
         </div>
       </Modal>
 
-      <div style={{ width: "100%", height: "100vh", background: Colors.Background.Surface.Default }}>
+      <div
+        style={{
+          width: "100%",
+          height: "60vh",
+          background: Colors.Background.Surface.Default,
+        }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
           style={{ background: Colors.Background.Surface.Default }}
+          // elementsSelectable={true}
+          // nodesDraggable={true}
+          // panOnDrag={true}
         >
           <Background color={Colors.Border.Neutral.Default} gap={16} />
           <Controls />
         </ReactFlow>
       </div>
+      
+      <div>
+        {/* {transactionQueryResult.data ? (
+          <pre>{JSON.stringify(transactionQueryResult.data.records, null, 2)}</pre>
+        ) : (
+          <Text>No trans</Text>
+        )}
+        <br></br>
+
+        {serviceQueryResult.data ? (
+          <pre>{JSON.stringify(serviceQueryResult.data.records, null, 2)}</pre>
+        ) : (
+          <Text>No service</Text>
+        )} 
+        {matchedTransactions ? (
+          <pre>{JSON.stringify(matchedTransactions, null, 2)}</pre>
+        ) : (
+          <Text>No such transaction</Text>
+        )} */}
+        {selectedService != null ? (
+          <>
+            <h1>You have selected: {selectedService.serviceName}</h1>
+            {transactionQueryResult.data ? (
+              <DataTable
+                data={matchedTransactions}
+                columns={columns}
+              />
+            ) : (
+              <Text>Loading or no data...</Text>
+            )}
+          </>
+        ) : (
+          <h1>Please select a service to view details.</h1>
+        )}
+      </div>
     </>
   );
 };
+
