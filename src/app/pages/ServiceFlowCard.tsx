@@ -108,7 +108,7 @@ const generateEdges = (links: Record<string, string[]>): Edge[] => {
 
 export const ServiceFlowCard = () => {
   const location = useLocation();
-  const {services} = location.state || {};
+  const {services, cycle, run} = location.state || {};
   const [state, setState] = useState(true);
   const [sequences, setSequences] = useState<SequenceData[]>(() =>
     services?.map((item, index) => ({

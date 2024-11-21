@@ -392,13 +392,14 @@ export const Scenario = () => {
     {
       id: 'Details',
       header: 'Details',
-      accessor: (row) => row.services,
+      accessor: (row) => row,
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
+        console.log(row);
         return(
           <DataTable.Cell>
-            <Link as={RouterLink} to="/ServiceFlowCard" state={{services: row.value}}>Details</Link>
+            <Link as={RouterLink} to="/ServiceFlowCard" state={{services: row.value.services, cycle: row.value.cycleRun.cycle, run: row.value.cycleRun.run}}>Details</Link>
           </DataTable.Cell>
         )
       },
