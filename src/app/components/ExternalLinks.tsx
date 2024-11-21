@@ -1,5 +1,4 @@
 import { ExternalLink, Flex, Link, Text } from "@dynatrace/strato-components";
-import { NumberInput } from "@dynatrace/strato-components-preview";
 import React from "react";
 
 export const ExternalLinks = (props) => {

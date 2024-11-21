@@ -1,8 +1,7 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { Container, Flex, Heading, List, SkeletonText, Text } from "@dynatrace/strato-components";
-import { convertToTimeseries, Tab, Tabs, TimeframeSelector, TimeframeV2, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import { subDays } from "date-fns"
-import React, { useState } from "react";
+import { convertToTimeseries, Tab, Tabs, TimeseriesChart } from "@dynatrace/strato-components-preview";
+import React from "react";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags } from "../components/MatchTags";
