@@ -33,7 +33,7 @@ export const serviceTagsQueryResult = ({from, to}) => {
 export const errorQueryResult = ({from, to, run, cycle}) => {
   return useDqlQuery({
     body: {
-      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${from}", to: "${to}", by: { run, cycle }
+      query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${from}", to: "${to}", by: { run, cycle, transaction }
       | filter run == "${run}" and cycle == "${cycle}"
       | sort arrayAvg(error) desc`
   }
@@ -42,7 +42,7 @@ export const errorQueryResult = ({from, to, run, cycle}) => {
 export const meantimeQueryResult = ({from, to, run, cycle}) => {
   return useDqlQuery({
   body: {
-    query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${from}", to: "${to}", by: { run, cycle }
+    query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${from}", to: "${to}", by: { run, cycle, transaction }
       | filter run == "${run}" and cycle == "${cycle}"
       | sort arrayAvg(meantime) desc`
   }
@@ -67,7 +67,7 @@ export const meantimeQueryResultScenario = ({from, to}) => {
 export const cpuUsageQueryResult = ({from, to}) => {
   return useDqlQuery({
   body: {
-    query: `timeseries usage = avg(dt.host.cpu.usage), from: "${from}", to: "${to}", by: { dt.entity.host }
+    query: `timeseries usage = avg(dt.host.cpu.usage), from: -30d, to: "${to}", by: { dt.entity.host }
       | fieldsAdd entityName(dt.entity.host)
       | fieldsRename id = dt.entity.host`
   }
@@ -76,7 +76,7 @@ export const cpuUsageQueryResult = ({from, to}) => {
 export const memoryUsageQueryResult = ({from, to}) => {
   return useDqlQuery({
   body: {
-    query: `timeseries usage = avg(dt.host.memory.usage), from: "${from}", to: "${to}", by: { dt.entity.host }
+    query: `timeseries usage = avg(dt.host.memory.usage), from: -30d, to: "${to}", by: { dt.entity.host }
       | fieldsAdd entityName(dt.entity.host)
       | fieldsRename id = dt.entity.host`
   }

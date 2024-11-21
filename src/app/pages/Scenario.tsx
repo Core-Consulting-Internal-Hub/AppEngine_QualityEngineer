@@ -76,10 +76,8 @@ export const Scenario = () => {
         : true;
 
       const matchesCycleRun = cycleRunFilter
-        ? row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2) === cycleRunFilter
+        ? (row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)).includes(cycleRunFilter)
         : true;
-
-        console.log(cycleRunFilter);
 
       const matchesHost = hostFilter
         ? row.hosts?.some((host) => host.name === hostFilter)
@@ -108,7 +106,6 @@ export const Scenario = () => {
     });
 
     setFilteredData(filtered);
-    console.log(filteredData);
   }, [transactionFilter, cycleRunFilter, hostFilter, processFilter, serviceFilter, passFailFilter, rowData]);
 
   const tags = useDqlQuery({
@@ -396,7 +393,6 @@ export const Scenario = () => {
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
-        console.log(row);
         return(
           <DataTable.Cell>
             <Link as={RouterLink} to="/ServiceFlowCard" state={{services: row.value.services, cycle: row.value.cycleRun.cycle, run: row.value.cycleRun.run}}>Details</Link>
@@ -411,6 +407,21 @@ export const Scenario = () => {
     <Container>
       <Flex flexDirection="row" justifyContent="space-between" marginBottom={12}>
         <FilterBar onFilterChange={() => {}}>
+          <FilterBar.Item name="cycleRun" label="Filter by Cycle|Run">
+            <TextInput
+              placeholder="Filter by Cycle|Run"
+              onChange={(e) => setCycleRunFilter(e)} // Update filter value
+            />
+            {/* <SelectV2 value={cycleRunFilter} onChange={setCycleRunFilter} clearable>
+              <SelectV2.Content>
+                {Array.from(new Set(rowData.map((row) => (
+                  <SelectV2.Option key={row.cycleRun.cycle + row.cycleRun.run} value={row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}>
+                    {row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}
+                  </SelectV2.Option>
+                ))))}
+              </SelectV2.Content>
+            </SelectV2> */}
+          </FilterBar.Item>
           <FilterBar.Item name="transaction" label="Filter by transaction">
             <TextInput
               placeholder="Filter by transaction"
@@ -420,17 +431,6 @@ export const Scenario = () => {
         </FilterBar>
         <Flex>
           <FilterBar onFilterChange={() => {}}>
-            <FilterBar.Item name="cycleRun" label="Filter by Cycle|Run">
-              <SelectV2 value={cycleRunFilter} onChange={setCycleRunFilter} clearable>
-                <SelectV2.Content>
-                  {Array.from(new Set(rowData.map((row) => (
-                    <SelectV2.Option key={row.cycleRun.cycle + row.cycleRun.run} value={row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}>
-                      {row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}
-                    </SelectV2.Option>
-                  ))))}
-                </SelectV2.Content>
-              </SelectV2>
-            </FilterBar.Item>
             <FilterBar.Item name="hosts" label="Filter by host">
               <SelectV2 value={hostFilter} onChange={setHostFilter} clearable>
                 <SelectV2.Content>
