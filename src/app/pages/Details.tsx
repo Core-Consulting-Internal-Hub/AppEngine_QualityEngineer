@@ -1,12 +1,12 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { Container, Flex, Heading, List, SkeletonText, Text } from "@dynatrace/strato-components";
 import { ChartSeriesAction, convertToTimeseries, Tab, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import React, { useState } from "react";
+import React from "react";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
-import { useLocation, useNavigate } from "react-router-dom";
-import { MagnifyingGlassIcon } from "@dynatrace/strato-icons";
+import { useLocation } from "react-router-dom";
+import { InternetIcon } from "@dynatrace/strato-icons";
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 
 interface ExtendedTimeseries extends Timeseries {
@@ -164,7 +164,7 @@ export const Details = () => {
                         }}
                       >
                         <ChartSeriesAction.ItemIcon>
-                          <MagnifyingGlassIcon />
+                          <InternetIcon />
                         </ChartSeriesAction.ItemIcon>
                         {link?.name}
                       </ChartSeriesAction.Item>
@@ -205,7 +205,7 @@ export const Details = () => {
                         }}
                       >
                         <ChartSeriesAction.ItemIcon>
-                          <MagnifyingGlassIcon />
+                          <InternetIcon />
                         </ChartSeriesAction.ItemIcon>
                         {link?.name}
                       </ChartSeriesAction.Item>
@@ -243,7 +243,7 @@ export const Details = () => {
                         }}
                       >
                         <ChartSeriesAction.ItemIcon>
-                          <MagnifyingGlassIcon />
+                          <InternetIcon />
                         </ChartSeriesAction.ItemIcon>
                         {link?.name}
                       </ChartSeriesAction.Item>
@@ -281,7 +281,7 @@ export const Details = () => {
                         }}
                       >
                         <ChartSeriesAction.ItemIcon>
-                          <MagnifyingGlassIcon />
+                          <InternetIcon />
                         </ChartSeriesAction.ItemIcon>
                         {link?.name}
                       </ChartSeriesAction.Item>
