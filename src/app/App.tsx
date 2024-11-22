@@ -5,7 +5,6 @@ import { Header } from "./components/Header";
 import { Scenario } from "./pages/Scenario";
 import { Details } from "./pages/Details";
 import { ServiceFlowCard } from "./pages/ServiceFlowCard";
-import { useNavigate } from 'react-router-dom';
 
 export const App = () => {
 

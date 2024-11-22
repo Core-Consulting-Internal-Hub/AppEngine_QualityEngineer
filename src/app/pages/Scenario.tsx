@@ -110,14 +110,16 @@ export const Scenario = () => {
 
   const tags = useDqlQuery({
     body: {
-      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle }
-        | summarize by:{timeframe, run, cycle} , transaction = collectArray(transaction)`
+      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle, scenario }
+        | summarize by:{timeframe, run, cycle, scenario} , transaction = collectArray(transaction)
+        | filter isNotNull(cycle) and isNotNull(run) and isNotNull(scenario)`
     }
   })
 
   const specificTimeUsage = useDqlQuery({
     body: {
-      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, cycle }`,
+      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, cycle }
+        | filter isNotNull(cycle) and isNotNull(run)`,
     },
   });
 
@@ -174,6 +176,7 @@ export const Scenario = () => {
           renderProcessesCell(row);
           renderServicesCell(row);
           renderTransactionsCell(row);
+          renderScenariosCell(row)
           renderPassFailCell(row);
         });
         setLoading(false);
@@ -202,6 +205,7 @@ export const Scenario = () => {
     const specificCycleRun = specificTimeUsage.data?.records.filter((item) => item && item.cycle === row.cycle && item.run === row.run);
     const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types);
 
+    console.log(datapoints);
     const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
     const end = datapoints?.[0]?.datapoints?.[datapoints[0].datapoints.length - 1]?.end?.toISOString();
     updateRowData(row.cycle, row.run, "cycleRun", { cycle: row.cycle, run: row.run, start: start, end: end });
@@ -255,6 +259,10 @@ export const Scenario = () => {
     updateRowData(row.cycle, row.run, "transactions", row.transaction)
   };
 
+  const renderScenariosCell = (row) => {
+    updateRowData(row.cycle, row.run, "scenarios", row.scenario)
+  }
+
   // Function to render Pass/Fail column
   const renderPassFailCell = (row) => {
     const marks = PassCriteria({
@@ -267,6 +275,8 @@ export const Scenario = () => {
     updateRowData(row.cycle, row.run, "passFail", passFail);
   };  
 
+  console.log(filteredData);
+
   const columns: TableColumn[] = [
     {
       header: 'Cycle|Run',
@@ -276,9 +286,7 @@ export const Scenario = () => {
       cell: (row) => {
         return (
           <DataTable.Cell>
-            <Link as={RouterLink} to="/details" state={{cycle: row.value.cycle, run: row.value.run, from: row.value.start, to: row.value.end}}>
               {row.value.cycle.charAt(0).toUpperCase() + row.value.cycle.slice(-2) + "|" + row.value.run.charAt(0).toUpperCase() + row.value.run.slice(-2)}
-            </Link>
           </DataTable.Cell>
         )
       },
@@ -354,7 +362,7 @@ export const Scenario = () => {
       header: 'Transaction(s)',
       accessor: 'transactions',
       autoWidth: true,
-      ratioWidth: 1,
+      ratioWidth: 2,
       cell: (row) => {
         return (
           <DataTable.Cell>
@@ -366,6 +374,12 @@ export const Scenario = () => {
           </DataTable.Cell>
         )
       }
+    },
+    {
+      header: "Scenario",
+      accessor: "scenarios",
+      autoWidth: true,
+      ratioWidth: 1,
     },
     {
       header: 'Pass/Fail',
@@ -395,7 +409,7 @@ export const Scenario = () => {
       cell: (row) => {
         return(
           <DataTable.Cell>
-            <Link as={RouterLink} to="/ServiceFlowCard" state={{services: row.value.services, cycle: row.value.cycleRun.cycle, run: row.value.cycleRun.run}}>Details</Link>
+            <Link as={RouterLink} to="/details" state={{cycle: row.value.cycleRun.cycle, run: row.value.cycleRun.run, from: row.value.cycleRun.start, to: row.value.cycleRun.end}}>Details</Link>
           </DataTable.Cell>
         )
       },
@@ -496,6 +510,9 @@ export const Scenario = () => {
           verticalDividers: true,
           contained: true,
         }}>
+          <DataTable.Toolbar>
+            <DataTable.DownloadData />
+          </DataTable.Toolbar>
           <DataTable.Pagination />
       </DataTable>}
     </Container>
