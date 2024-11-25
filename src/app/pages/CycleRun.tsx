@@ -3,7 +3,7 @@ import { convertToTimeseries, DataTable, FilterBar, SelectV2, TableColumn, TextI
 import React, { useEffect, useState } from "react";
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { ExternalLinks } from "../components/ExternalLinks";
-import { cpuUsageQueryResult, errorQueryResultScenario, hostTagsQueryResult, meantimeQueryResultScenario, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
+import { cpuUsageQueryResult, errorQueryResultScenario, hostTagsQueryResult, meantimeQueryResultScenario, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult, tagsQueryResult } from "../Data/QueryResult";
 import { subHours, subDays } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
 import { ExternalLink, Link, List } from '@dynatrace/strato-components/typography';
@@ -12,7 +12,7 @@ import { MatchTags } from "../components/MatchTags";
 import { PassCriteria } from "../components/PassCriteria";
 
 
-export const Scenario = () => {
+export const CycleRun = () => {
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
       absoluteDate: subDays(new Date(), 7).toISOString(),
@@ -108,13 +108,7 @@ export const Scenario = () => {
     setFilteredData(filtered);
   }, [transactionFilter, cycleRunFilter, hostFilter, processFilter, serviceFilter, passFailFilter, rowData]);
 
-  const tags = useDqlQuery({
-    body: {
-      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, transaction, cycle, scenario }
-        | summarize by:{timeframe, run, cycle, scenario} , transaction = collectArray(transaction)
-        | filter isNotNull(cycle) and isNotNull(run) and isNotNull(scenario)`
-    }
-  })
+  const tags = tagsQueryResult({from: time?.from.absoluteDate, to: time?.to.absoluteDate})
 
   const specificTimeUsage = useDqlQuery({
     body: {
@@ -380,6 +374,10 @@ export const Scenario = () => {
       accessor: "scenarios",
       autoWidth: true,
       ratioWidth: 1,
+      // sortType: (a, b) => {
+      //   console.log(a.values.scenarios)
+      //   return 0;
+      // }
     },
     {
       header: 'Pass/Fail',
