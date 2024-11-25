@@ -31,6 +31,7 @@
     "@dynatrace/strato-components-preview": "0.116.53",
     "@dynatrace/strato-design-tokens": "~0.20.30",
     "@dynatrace/strato-icons": "~0.39.0",
+    "@react-native-async-storage/async-storage": "^2.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-intl": "6.6.2",
