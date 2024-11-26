@@ -10,9 +10,10 @@ import { ExternalLink, Link, List } from '@dynatrace/strato-components/typograph
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags } from "../components/MatchTags";
 import { PassCriteria } from "../components/PassCriteria";
-
+import { useDocContext } from "../components/DocProvider";
 
 export const CycleRun = () => {
+  const { docContent, setDocContent, updateDocContent } = useDocContext();
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
       absoluteDate: subDays(new Date(), 7).toISOString(),
@@ -76,7 +77,7 @@ export const CycleRun = () => {
         : true;
 
       const matchesCycleRun = cycleRunFilter
-        ? (row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)).includes(cycleRunFilter)
+        ? (row.cycleRun.cycle + "|" + row.cycleRun.run).includes(cycleRunFilter)
         : true;
 
       const matchesHost = hostFilter
@@ -199,7 +200,6 @@ export const CycleRun = () => {
     const specificCycleRun = specificTimeUsage.data?.records.filter((item) => item && item.cycle === row.cycle && item.run === row.run);
     const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types);
 
-    console.log(datapoints);
     const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
     const end = datapoints?.[0]?.datapoints?.[datapoints[0].datapoints.length - 1]?.end?.toISOString();
     updateRowData(row.cycle, row.run, "cycleRun", { cycle: row.cycle, run: row.run, start: start, end: end });
@@ -269,8 +269,6 @@ export const CycleRun = () => {
     updateRowData(row.cycle, row.run, "passFail", passFail);
   };  
 
-  console.log(filteredData);
-
   const columns: TableColumn[] = [
     {
       header: 'Cycle|Run',
@@ -280,7 +278,7 @@ export const CycleRun = () => {
       cell: (row) => {
         return (
           <DataTable.Cell>
-              {row.value.cycle.charAt(0).toUpperCase() + row.value.cycle.slice(-2) + "|" + row.value.run.charAt(0).toUpperCase() + row.value.run.slice(-2)}
+            {`${row.value.cycle}|${row.value.run}`}
           </DataTable.Cell>
         )
       },
@@ -296,12 +294,6 @@ export const CycleRun = () => {
         return cycleA.localeCompare(cycleB);
       }
     },
-    // {
-    //   header: 'Input Layer',
-    //   accessor: 'input',
-    //   autoWidth: true,
-    //   ratioWidth: 2,
-    // },
     {
       header: 'Host(s)',
       accessor: 'hosts',
@@ -390,9 +382,9 @@ export const CycleRun = () => {
             {(
               row.value === "Failed"
             ) ? (
-              <DataTable.Cell style={{ color: 'red' }}>{row.value}</DataTable.Cell>
+              <DataTable.Cell style={{ backgroundColor: 'red' }}>{row.value}</DataTable.Cell>
             ) : (
-              <DataTable.Cell style={{ color: 'green' }}>{row.value}</DataTable.Cell>
+              <DataTable.Cell style={{ backgroundColor: 'green' }}>{row.value}</DataTable.Cell>
             )}
           </>
         )
