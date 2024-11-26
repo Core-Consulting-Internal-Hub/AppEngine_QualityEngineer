@@ -11,7 +11,10 @@
       { "name": "storage:metrics:read", "comment": "default template" },
       { "name": "storage:events:read", "comment": "default template" },
       { "name": "storage:entities:read", "comment": "default template" },
-      { "name": "storage:system:read", "comment": "default template" }
+      { "name": "storage:system:read", "comment": "default template" },
+      { "name": "document:documents:read", "comment": "default template" },
+      { "name": "document:documents:write", "comment": "default template" },
+      { "name": "document:documents:delete", "comment": "default template" }
     ]
   }
 }
