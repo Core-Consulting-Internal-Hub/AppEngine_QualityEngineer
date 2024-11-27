@@ -38,8 +38,24 @@ export const DocProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const contentResponse = await documentsClient.downloadDocumentContent({ id: doc.id });
       if (contentResponse) {
         const content = await contentResponse.get("json");
-        setDocContent(content);
+
+        // Sort content by cycle and then run
+        const sortedContent = content.sort((a, b) => {
+          // Compare cycles
+          if (a.cycle < b.cycle) return -1;
+          if (a.cycle > b.cycle) return 1;
+
+          // Compare runs (secondary sorting)
+          if (a.run < b.run) return -1;
+          if (a.run > b.run) return 1;
+
+          return 0;
+        });
+
+        setDocContent(sortedContent);
       }
+
+      
     } catch (error) {
       console.error("Error fetching or creating document content:", error);
     }
