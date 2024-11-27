@@ -9,15 +9,14 @@ import { Link as RouterLink } from 'react-router-dom';
 import { ExternalLink, Link, List } from '@dynatrace/strato-components/typography';
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags } from "../components/MatchTags";
-import { PassCriteria } from "../components/PassCriteria";
 import { useDocContext } from "../components/DocProvider";
 
 export const CycleRun = () => {
-  const { docContent, setDocContent, updateDocContent } = useDocContext();
+  const { docContent } = useDocContext();
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
-      absoluteDate: subDays(new Date(), 7).toISOString(),
-      value: 'now()-7d',
+      absoluteDate: subDays(new Date(), 14).toISOString(),
+      value: 'now()-14d',
       type: 'expression',
     },
     to: {
@@ -192,6 +191,7 @@ export const CycleRun = () => {
     meantime.isLoading,
     cpu.isLoading,
     memory.isLoading,
+    docContent,
   ]);
   // Ensure to check for all data once everything is fetched.  
 
@@ -259,15 +259,70 @@ export const CycleRun = () => {
 
   // Function to render Pass/Fail column
   const renderPassFailCell = (row) => {
-    const marks = PassCriteria({
-      error: error.data?.records.map((r) => r && r.cycle === row.cycle && r.run === row.run && r.error),
-      meantime: meantime.data?.records.map((r) => r && r.cycle === row.cycle && r.run === row.run && r.meantime),
-      cpuUsage: cpu.data?.records.map((r) => r && r.cycle === row.cycle && r.run === row.run && r.usage),
-      memoryUsage: memory.data?.records.map((r) => r && r.cycle === row.cycle && r.run === row.run && r.usage),
+    const defaultCriteria = {
+      "Failure Rate": 10.0,
+      "Response Time": 120000.0,
+      "CPU Usage": 90.0,
+      "Memory Usage": 90.0,
+    };
+  
+    // Utility: Filter records by cycle and run
+    const filterByCycleAndRun = (records) =>
+      records?.filter(r => r && r.cycle === row.cycle && r.run === row.run) || [];
+  
+    // Utility: Calculate average from values
+    const calculateAverage = (values) =>
+      values.length
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : 0;
+  
+    // Utility: Calculate metric average from data and field
+    const calculateMetricAverage = (data, field) =>
+      calculateAverage(
+        filterByCycleAndRun(data?.records)
+          .map(r => r[field])
+          .flatMap(item => item)
+          .filter(value => typeof value === "number")
+      );
+  
+    // Generate average data for the row
+    const getAvgData = () => ({
+      "Failure Rate": calculateMetricAverage(error.data, "error"),
+      "Response Time": calculateMetricAverage(meantime.data, "meantime"),
+      "CPU Usage": calculateMetricAverage(cpu.data, "usage"),
+      "Memory Usage": calculateMetricAverage(memory.data, "usage"),
     });
-    const passFail = marks.every((mark) => mark.score) ? "Passed" : "Failed";
-    updateRowData(row.cycle, row.run, "passFail", passFail);
-  };  
+  
+    // Check criteria and return Pass/Fail with criteria type
+    const checkCriteria = (avgData, docContent, cycle, run) => {
+      const matchingCriteria = docContent.find(
+        (criteria) => criteria.cycle === cycle && criteria.run === run
+      );
+      const criteria = matchingCriteria?.criteria || defaultCriteria;
+      const criteriaType = matchingCriteria ? "customized" : "default";
+      
+      Object.entries(avgData).every(
+        ([key, value]) => console.log("v",Number(value)) <= console.log("c",(criteria[key]))
+      );
+      const passes = Object.entries(avgData).every(
+        ([key, value]) => Number(value) <= (criteria[key])
+      );
+  
+      return {
+        result: passes ? "Passes" : "Failed",
+        criteriaType,
+      };
+    };
+  
+    // Main logic
+    const avgData = getAvgData();
+    const { result, criteriaType } = checkCriteria(avgData, docContent, row.cycle, row.run);
+  
+    console.log(`Result: ${result}, Criteria Type: ${criteriaType}`);
+    // Update row data if needed
+    updateRowData(row.cycle, row.run, "passFail", `${result} (${criteriaType})`);
+  };
+  
 
   const columns: TableColumn[] = [
     {
@@ -372,7 +427,7 @@ export const CycleRun = () => {
       // }
     },
     {
-      header: 'Pass/Fail',
+      header: 'Pass/Fail(Criteria)',
       accessor: 'passFail',
       autoWidth: true,
       ratioWidth: 1,
@@ -380,7 +435,7 @@ export const CycleRun = () => {
         return (
           <>
             {(
-              row.value === "Failed"
+              row.value.includes("Failed")
             ) ? (
               <DataTable.Cell style={{ backgroundColor: 'red' }}>{row.value}</DataTable.Cell>
             ) : (

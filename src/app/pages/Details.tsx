@@ -1,25 +1,29 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
-import { Container, Flex, Heading, List, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
-import { ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, SimpleTable, Tab, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import React, { useState } from "react";
+import { Button, Container, Flex, Heading, List, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
+import { ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, NumberInput, SimpleTable, Tab, TableColumn, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
+import React, { useEffect, useState } from "react";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
 import { useLocation } from "react-router-dom";
 import { InternetIcon } from "@dynatrace/strato-icons";
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
+import { useDocContext } from "../components/DocProvider";
 
 interface ExtendedTimeseries extends Timeseries {
   name: string[];
 }
 
 export const Details = () => {
-  // const location = useLocation();
-  // const { run, cycle, from, to} = location.state || {};
-  const run = "run01"
-  const cycle = "cycle02"
-  const from = "2024-11-21T10:10:00.000Z"
-  const to = "2024-11-21T10:40:00.000Z"
+  const location = useLocation();
+  const { run, cycle, from, to} = location.state || {};
+
+  const { docContent, setDocContent, updateDocContent } = useDocContext();
+
+  // const cycle = "cycle01"
+  // const run = 'run01'
+  // const from = '2024-11-12T06:00:00.000Z'
+  // const to = '2024-11-19T03:00:00.000Z'
 
   const runQuery = useDqlQuery({
     body: {
@@ -28,8 +32,6 @@ export const Details = () => {
       | summarize by:{timeframe, run, cycle, scenario} , transaction = collectArray(transaction)`
     }
   });
-
-  
 
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
   const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
@@ -98,26 +100,121 @@ export const Details = () => {
       .reduce((sum, value, _, arr) => sum + value / arr.length, 0); // Calculate average
   };
 
-  // Determine background color for a row
-  const getBackgroundColor = (id, average) => {
-    const target = Number(inputs[id]);
-    if (isNaN(target)) return ""; // No color if no valid target
-    return target < average ? "red" : "green"; // Red if target < average, Green otherwise
+  const [matchedCriteria, setMatchedCriteria] = useState([]);
+  const getMactchedCriteria = async () => {
+    const matchingCriteria = await docContent.find(
+      (criteria) => criteria.cycle === cycle && criteria.run === run
+    );
+    const criteria = matchingCriteria?.criteria;
+
+    setMatchedCriteria(criteria);
+  }
+
+  useEffect(() => {
+    getMactchedCriteria()
+  }, [docContent])
+
+  const handleChange = async (cycle: string, run: string, key: string, newValue: number) => {
+    setDocContent((prevState) => {
+      // Check if the item with the given cycle and run exists
+      const itemIndex = prevState.findIndex(
+        (item) => item.cycle === cycle && item.run === run
+      );
+  
+      if (itemIndex !== -1) {
+        // If found, update the existing item
+        return prevState.map((item, index) =>
+          index === itemIndex
+            ? {
+                ...item,
+                criteria: {
+                  ...item.criteria,
+                  [key]: newValue, // Update the specific key in criteria
+                },
+              }
+            : item
+        );
+      } else {
+        // If not found, add a new item
+        return [
+          ...prevState,
+          {
+            cycle: cycle,
+            run: run,
+            criteria: {
+              [key]: newValue, // Set the key-value pair in criteria for the new item
+            },
+          },
+        ];
+      }
+    });
   };
+  
 
-  // Handle input change for a specific row
-  const handleInputChange = (id, value) => {
-    setInputs((prev) => ({ ...prev, [id]: value }));
-  };
+  const rowData = [
+    {
+      metric: "Failure Rate",
+      target: matchedCriteria ? matchedCriteria["Failure Rate"] : 10.0,
+      result: calculateAverage(errorData, "error"),
+      status: ''
+    },
+    {
+      metric: "Response Time",
+      target: matchedCriteria ? matchedCriteria["Response Time"] : 120000.0,
+      result: calculateAverage(timeData, "meantime"),
+      status: ''
+    },
+    {
+      metric: "CPU Usage",
+      target: matchedCriteria ? matchedCriteria["CPU Usage"] : 90.0,
+      result: calculateAverage(cpuData, "usage"),
+      status: ''
+    },
+    {
+      metric: "Memory Usage",
+      target: matchedCriteria ? matchedCriteria["Memory Usage"] : 90.0,
+      result: calculateAverage(memoryData, "usage"),
+      status: ''
+    },
+  ]
 
-  const rows = [
-    { id: "failureRate", label: "Failure Rate", data: errorData, field: "error" },
-    { id: "responseTime", label: "Response Time", data: timeData, field: "meantime" },
-    { id: "cpuUsage", label: "CPU Usage", data: cpuData, field: "usage" },
-    { id: "memoryUsage", label: "Memory Usage", data: memoryData, field: "usage" },
-  ];
-
-  console.log(errorData, timeData, cpuData, memoryData);
+  const columns: TableColumn[] = [
+    {
+      header: "Metric",
+      accessor: 'metric',
+      ratioWidth:1
+    },
+    {
+      header: 'Target',
+      accessor: 'target',
+      ratioWidth:1,
+      cell: (row) => {
+        return(
+          <DataTable.Cell>
+            <NumberInput value={row.value} onChange={e => handleChange(cycle, run, row.row.original.metric, Number(e))}/>
+          </DataTable.Cell>
+        )
+      }
+    },
+    {
+      header: "Result (Avg)",
+      accessor: 'result',
+      ratioWidth:1
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessor: row => row,
+      cell: (row) => {
+        return (
+          <DataTable.Cell>
+            {row.value.result > row.value.target ? <DataTable.Cell style={{backgroundColor: 'red'}}/> : <DataTable.Cell style={{backgroundColor: 'green'}}/>}
+          </DataTable.Cell>
+        )
+      },
+      ratioWidth:1
+    }
+  ]
 
   return (
     <Flex width='100%' flexDirection='column' justifyContent='center' gap={16}>
@@ -150,60 +247,10 @@ export const Details = () => {
             {(error.isLoading || meantime.isLoading || cpu.isLoading || memory.isLoading) ? (
               <SkeletonText />
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", margin: "20px 0" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "var(--header-bg)", color: "var(--header-text)", }}>
-                    <th style={{ border: "1px solid #ddd", padding: "10px", textAlign: "left" }}>Metric</th>
-                    <th style={{ border: "1px solid #ddd", padding: "10px", textAlign: "left" }}>Target</th>
-                    <th style={{ border: "1px solid #ddd", padding: "10px", textAlign: "left" }}>Average</th>
-                    <th style={{ border: "1px solid #ddd", padding: "10px", textAlign: "left" }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const average = calculateAverage(row.data, row.field);
-                    return (
-                      <tr
-                        key={row.id}
-                        style={{
-                          backgroundColor: "var(--row-bg)",
-                          borderBottom: "1px solid #ddd",
-                          transition: "background-color 0.3s",
-                        }}
-                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "var(--row-hover-bg)")}
-                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "var(--row-bg)")}
-                      >
-                        <td style={{ border: "1px solid #ddd", padding: "10px" }}>{row.label}</td>
-                        <td style={{ border: "1px solid #ddd", padding: "10px" }}>
-                          <input
-                            type="number"
-                            value={inputs[row.id] || ""}
-                            onChange={(e) => handleInputChange(row.id, e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "8px",
-                              border: "1px solid #ccc",
-                              borderRadius: "4px",
-                              boxSizing: "border-box",
-                            }}
-                          />
-                        </td>
-                        <td style={{ border: "1px solid #ddd", padding: "10px" }}>{average.toFixed(2)}</td>
-                        <td
-                          style={{
-                            border: "1px solid #ddd",
-                            padding: "10px",
-                            textAlign: "center",
-                            fontWeight: "bold",
-                            color: "var(--status-text)",
-                            backgroundColor: getBackgroundColor(row.id, average),
-                          }}
-                        ></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <>
+              <DataTable data={rowData} columns={columns}/>
+              <Button color="primary" variant="emphasized" onClick={() => updateDocContent()}>Update</Button>
+              </>
             )}
           </Flex>
         </Container>
