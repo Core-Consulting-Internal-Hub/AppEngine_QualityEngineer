@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader, FormField, FormFieldMessages, Label, Modal, NumberInput, Overlay, TextInput, useMergeRefs, useOverlayWithTrigger } from "@dynatrace/strato-components-preview";
 import { Button, Container, Flex, Heading } from "@dynatrace/strato-components"
-import { DeleteIcon, PlusIcon, SettingIcon } from "@dynatrace/strato-icons";
+import { DeleteIcon, HomeIcon, PlusIcon, SettingIcon } from "@dynatrace/strato-icons";
 import { useDocContext } from "./DocProvider";
 
 export const Header = () => {
@@ -122,7 +122,7 @@ export const Header = () => {
     <>
       <AppHeader>
         <AppHeader.NavItems>
-          <AppHeader.AppNavLink as={Link} to="/" />
+          <AppHeader.AppNavLink appName="Home Page" as={Link} to="/"/>
           <AppHeader.NavItem onClick={() => setState(true)}>
             <SettingIcon /> Criteria List
           </AppHeader.NavItem>

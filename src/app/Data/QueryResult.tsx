@@ -90,3 +90,12 @@ export const memoryUsageQueryResult = ({from, to}) => {
       | fieldsRename id = dt.entity.host`
   }
 });};
+
+export const throughputQueryResult = ({from, to, run, cycle}) => {
+  return useDqlQuery({
+    body: {
+      query: `timeseries count = avg(jmeter.usermetrics.transaction.count), from: "${from}", to: "${to}", by: { cycle, run, transaction }
+      | filter run == "${run}" and cycle == "${cycle}"
+      | sort arrayAvg(count) desc`
+    }
+})};

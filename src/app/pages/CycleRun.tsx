@@ -61,7 +61,7 @@ export const CycleRun = () => {
   const [filteredData, setFilteredData] = useState<any[]>([]); // State for filtered data
 
   // States for filters
-  const [transactionFilter, setTransactionFilter] = useState<string | null>(null);
+  const [transactionFilter, setTransactionFilter] = useState<string[]>([]);
   const [cycleRunFilter, setCycleRunFilter] = useState<string | null>(null);
   const [hostFilter, setHostFilter] = useState<string | null>(null);
   const [processFilter, setProcessFilter] = useState<string | null>(null);
@@ -71,9 +71,11 @@ export const CycleRun = () => {
   // Filter logic
   useEffect(() => {
     const filtered = rowData.filter((row) => {
-      const matchesTransaction = transactionFilter
-        ? row.transactions.some((transaction) => transaction.includes(transactionFilter))
-        : true;
+      const matchesTransaction = !transactionFilter || transactionFilter.length === 0
+        ? true
+        : transactionFilter.some((filterValue) =>
+            row.transactions.some((transaction) => transaction.includes(filterValue))
+          );
 
       const matchesCycleRun = cycleRunFilter
         ? (row.cycleRun.cycle + "|" + row.cycleRun.run).includes(cycleRunFilter)
@@ -240,8 +242,7 @@ export const CycleRun = () => {
       row: row.transaction,
     });
 
-    const serviceLinks = Array.from(servicesMatched.values()).map((service, index) => ({
-      index: index + 1,
+    const serviceLinks = Array.from(servicesMatched.values()).map((service) => ({
       name: service.name,
       link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`,
     }));
@@ -301,9 +302,6 @@ export const CycleRun = () => {
       const criteria = matchingCriteria?.criteria || defaultCriteria;
       const criteriaType = matchingCriteria ? "customized" : "default";
       
-      Object.entries(avgData).every(
-        ([key, value]) => console.log("v",Number(value)) <= console.log("c",(criteria[key]))
-      );
       const passes = Object.entries(avgData).every(
         ([key, value]) => Number(value) <= (criteria[key])
       );
@@ -318,7 +316,6 @@ export const CycleRun = () => {
     const avgData = getAvgData();
     const { result, criteriaType } = checkCriteria(avgData, docContent, row.cycle, row.run);
   
-    console.log(`Result: ${result}, Criteria Type: ${criteriaType}`);
     // Update row data if needed
     updateRowData(row.cycle, row.run, "passFail", `${result} (${criteriaType})`);
   };
@@ -326,14 +323,15 @@ export const CycleRun = () => {
 
   const columns: TableColumn[] = [
     {
+      id: 'cycleRun',
       header: 'Cycle|Run',
-      accessor: 'cycleRun',
+      accessor: row => row.value = `${row.cycleRun.cycle}|${row.cycleRun.run}`,
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
         return (
           <DataTable.Cell>
-            {`${row.value.cycle}|${row.value.run}`}
+            {row.value}
           </DataTable.Cell>
         )
       },
@@ -350,65 +348,59 @@ export const CycleRun = () => {
       }
     },
     {
+      id: 'hosts',
       header: 'Host(s)',
-      accessor: 'hosts',
+      accessor: row => row.value = row.hosts.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
         return (<DataTable.Cell>
           <ExternalLinks
-            links ={row.value}
+            links ={row.row.original.hosts}
           />
         </DataTable.Cell>)
       }
     },
     {
+      id: 'processes',
       header: 'Process(es)',
-      accessor: 'processes',
+      accessor: row => row.value = row.processes.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
         return (<DataTable.Cell>
           <ExternalLinks
-            links ={row.value}
+            links ={row.row.original.processes}
           />
         </DataTable.Cell>)
       }
     },
     {
+      id: 'sercives',
       header: 'Service(s)',
-      accessor: 'services',
+      accessor: row => row.value = row.services.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
-        return (
-          <DataTable.Cell>
-              <Flex flexDirection="column">
-                {row.value.length === 0 ? <Text>N/A</Text> : row.value.map(item => {
-                  return (
-                    <Flex flexDirection="row">
-                      <Text>{item.index}. </Text>
-                      <ExternalLink href={item.link}>
-                        <Link>{item.name}</Link>
-                      </ExternalLink>
-                    </Flex>
-                  )
-                })}
-              </Flex>
-          </DataTable.Cell>
-        )
+        return (<DataTable.Cell>
+          <ExternalLinks
+            links ={row.row.original.services}
+          />
+        </DataTable.Cell>)
+        
       }
     },
     {
+      id: 'transactions',
       header: 'Transaction(s)',
-      accessor: 'transactions',
+      accessor: row => row.value = row.transactions.join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
         return (
           <DataTable.Cell>
             <List>
-              {row.value.map(transaction => (
+              {row.row.original.transactions.map(transaction => (
                 <Text>{transaction}</Text>
               ))}
             </List>
@@ -448,13 +440,13 @@ export const CycleRun = () => {
     {
       id: 'Details',
       header: 'Details',
-      accessor: (row) => row,
+      accessor: 'details',
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
         return(
           <DataTable.Cell>
-            <Link as={RouterLink} to="/details" state={{cycle: row.value.cycleRun.cycle, run: row.value.cycleRun.run, from: row.value.cycleRun.start, to: row.value.cycleRun.end}}>Details</Link>
+            <Link as={RouterLink} to="/details" state={{cycle: row.row.original.cycleRun.cycle, run: row.row.original.cycleRun.run, from: row.row.original.cycleRun.start, to: row.row.original.cycleRun.end}}>Details</Link>
           </DataTable.Cell>
         )
       },
@@ -471,21 +463,21 @@ export const CycleRun = () => {
               placeholder="Filter by Cycle|Run"
               onChange={(e) => setCycleRunFilter(e)} // Update filter value
             />
-            {/* <SelectV2 value={cycleRunFilter} onChange={setCycleRunFilter} clearable>
-              <SelectV2.Content>
-                {Array.from(new Set(rowData.map((row) => (
-                  <SelectV2.Option key={row.cycleRun.cycle + row.cycleRun.run} value={row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}>
-                    {row.cycleRun.cycle.charAt(0).toUpperCase() + row.cycleRun.cycle.slice(-2) + "|" + row.cycleRun.run.charAt(0).toUpperCase() + row.cycleRun.run.slice(-2)}
-                  </SelectV2.Option>
-                ))))}
-              </SelectV2.Content>
-            </SelectV2> */}
           </FilterBar.Item>
           <FilterBar.Item name="transaction" label="Filter by transaction">
-            <TextInput
+            <SelectV2 value={transactionFilter} onChange={setTransactionFilter} clearable multiple>
+              <SelectV2.Content>
+                {Array.from(new Set(rowData.flatMap((row) => row.transactions))).map((transaction) => 
+                  <SelectV2.Option key={transaction} value={transaction}>
+                    {transaction}
+                  </SelectV2.Option>
+                )}
+              </SelectV2.Content>
+            </SelectV2>
+            {/* <TextInput
               placeholder="Filter by transaction"
               onChange={(e) => setTransactionFilter(e)} // Update filter value
-            />
+            /> */}
           </FilterBar.Item>
         </FilterBar>
         <Flex>

@@ -1,8 +1,8 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { Button, Container, Flex, Heading, List, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
-import { ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, NumberInput, SimpleTable, Tab, TableColumn, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
+import { ChartInteractions, ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, NumberInput, SimpleTable, Tab, TableColumn, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
 import React, { useEffect, useState } from "react";
-import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult } from "../Data/QueryResult";
+import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult, throughputQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
 import { useLocation } from "react-router-dom";
@@ -15,15 +15,15 @@ interface ExtendedTimeseries extends Timeseries {
 }
 
 export const Details = () => {
-  const location = useLocation();
-  const { run, cycle, from, to} = location.state || {};
+  // const location = useLocation();
+  // const { run, cycle, from, to} = location.state || {};
 
   const { docContent, setDocContent, updateDocContent } = useDocContext();
 
-  // const cycle = "cycle01"
-  // const run = 'run01'
-  // const from = '2024-11-12T06:00:00.000Z'
-  // const to = '2024-11-19T03:00:00.000Z'
+  const cycle = "cycle01"
+  const run = 'run01'
+  const from = '2024-11-12T06:00:00.000Z'
+  const to = '2024-11-19T03:00:00.000Z'
 
   const runQuery = useDqlQuery({
     body: {
@@ -36,6 +36,7 @@ export const Details = () => {
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
   const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
   const meantime = meantimeQueryResult({from: from, to: to, run: run, cycle: cycle});
+  const throughput = throughputQueryResult({from: from, to: to, run: run, cycle: cycle});
 
   const host = MatchTags({queryResult: hostTagsQueryResult({from: from, to: to}), row: transactions});
   const service = MatchTagsWithTags({queryResult: serviceTagsQueryResult({from: from, to: to}), row: transactions});
@@ -55,31 +56,24 @@ export const Details = () => {
   const cpu = cpuUsageQueryResult({from: from, to: to});
   const memory = memoryUsageQueryResult({from: from, to: to});
 
-  const errorValue = error.data?.records.filter(item => item?.run === run).map(item =>  item && item.error);
-  const timeValue = meantime.data?.records.filter(item => item?.run === run).map(item => item && item.meantime);
-  const cpuValue: any[] = [];
-  const memoryValue: any[] = [];
+  const errorData = error.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item) || [];
+  const timeData = meantime.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item) || [];
+  const throughputData = throughput.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item).map(item => {
+    if (item && item.count && Array.isArray(item.count)) {
+      // Convert interval to minutes
+      const interval = Number(item.interval) / 1e9 / 60;
 
-  // Use a single loop for host and cpu/memory usage mapping
-  host.forEach(item => {
-    const matchingCpuHost = cpu.data?.records.find(record => record?.id === item.id);
-    if (matchingCpuHost) {
-      cpuValue.push(matchingCpuHost.usage);
+      // Update count by dividing each element by interval
+      const updatedCount = item.count.map(data => typeof data == "number" ? (data / interval).toFixed(2) : null);
+
+      // Return the updated item with the modified count
+      return { ...item, count: updatedCount };
     }
-
-    const matchingMemoryHost = memory.data?.records.find(record => record?.id === item.id);
-    if (matchingMemoryHost) {
-      memoryValue.push(matchingMemoryHost.usage);
-    }
-  });
-
-  const marks = PassCriteria({error: errorValue, meantime: timeValue, cpuUsage: cpuValue, memoryUsage: memoryValue});
-  const totalMarks = marks.reduce((total, mark) => total + (mark.score || 0), 0);
-
-  const errorData = error.data?.records?.filter(item => item?.run === run).map(item => item) || [];
-  const timeData = meantime.data?.records?.filter(item => item?.run === run).map(item => item) || [];
+    return item; // Return the item as is if the conditions aren't met
+  }) || [];
   const cpuData: any[] = [];
   const memoryData: any[] = [];
+
 
   host.forEach(item => {
     const matchingCpuHosts = cpu.data?.records?.filter(record => record?.id === item.id) || [];
@@ -88,10 +82,7 @@ export const Details = () => {
     const matchingMemoryHosts = memory.data?.records?.filter(record => record?.id === item.id) || [];
     memoryData.push(...matchingMemoryHosts);
   });
-
-  // State to track inputs for each row by their ID
-  const [inputs, setInputs] = useState({});
-
+  
   // Function to calculate the average of an array
   const calculateAverage = (data, field) => {
     return data
@@ -204,11 +195,11 @@ export const Details = () => {
     {
       id: 'status',
       header: 'Status',
-      accessor: row => row,
+      accessor: row => row.value = row.result > row.target ? "Failed" : "Passed",
       cell: (row) => {
         return (
           <DataTable.Cell>
-            {row.value.result > row.value.target ? <DataTable.Cell style={{backgroundColor: 'red'}}/> : <DataTable.Cell style={{backgroundColor: 'green'}}/>}
+            {row.value === "Failed"  ? <DataTable.Cell style={{backgroundColor: 'red'}}/> : <DataTable.Cell style={{backgroundColor: 'green'}}/>}
           </DataTable.Cell>
         )
       },
@@ -216,30 +207,47 @@ export const Details = () => {
     }
   ]
 
+  const propertiesColumns: TableColumn[] = [
+    {
+      header: "Properties",
+      accessor: 'key',
+      cell: (row) => {
+        return(
+          <DataTable.Cell>{row.value.charAt(0).toUpperCase() + row.value.slice(1)}</DataTable.Cell>
+        )
+      }
+    },
+    {
+      header: '',
+      accessor: 'value'
+    }
+  ]
+
+  const propertiesData = runQuery.data?.records.flatMap(item =>
+    item ? Object.entries(item).map(([key, value]) => {
+      if (key === "timeframe" && value) {
+        // Value is an object; create a main row with subRows
+        const subRows = Object.values(value).map(value => value.toLocaleString())
+        return {
+          key: key,
+          value: subRows.join(" - "),
+        };
+      } else {
+        // Value is not an object; return a single row
+        return {
+          key: key,
+          value: value?.toLocaleString(),
+        };
+      }
+    }) : []
+  );
+
   return (
     <Flex width='100%' flexDirection='column' justifyContent='center' gap={16}>
       <Flex width='100%' flexDirection="row">
         <Container width="100%">
           <Heading level={2}>Properties</Heading>
-          {runQuery.data?.records.map((item) => (
-            <List>
-              {item && Object.entries(item).map(([key, value]) => (
-                <React.Fragment key={key}>
-                  
-                  {key === "timeframe" && value && typeof value === "object" && "start" in value && "end" in value ? (
-                    <>
-                      <Text>{key.charAt(0).toUpperCase() + key.slice(1)}: Start: {value.start ? new Date(value.start as string | number).toLocaleString() : "N/A"}, End: {value.end ? new Date(value.end as string | number).toLocaleString() : "N/A"}</Text>
-                    </>
-                  ) : (
-                    <Text>
-                      {key.charAt(0).toUpperCase() + key.slice(1)}: {Array.isArray(value) ? value.join(', ') : String(value)}
-                    </Text>
-                  )}
-                </React.Fragment>
-              ))}
-            </List>
-          ))}
-
+          {propertiesData && <DataTable data={propertiesData} columns={propertiesColumns}/>}
         </Container>
         <Container width="100%">
           <Heading level={2}>Success Criteria</Heading>
@@ -248,8 +256,12 @@ export const Details = () => {
               <SkeletonText />
             ) : (
               <>
-              <DataTable data={rowData} columns={columns}/>
-              <Button color="primary" variant="emphasized" onClick={() => updateDocContent()}>Update</Button>
+                <DataTable data={rowData} columns={columns}>
+                <DataTable.Toolbar>
+                  <DataTable.DownloadData />
+                </DataTable.Toolbar>
+                </DataTable>
+                <Button color="primary" variant="emphasized" onClick={() => updateDocContent()}>Update</Button>
               </>
             )}
           </Flex>
@@ -295,8 +307,13 @@ export const Details = () => {
                   <ChartToolbar>
                     <ChartToolbar.DownloadData />
                   </ChartToolbar>
+                  <ChartInteractions>
+                    <ChartInteractions.Zoom />
+                    <ChartInteractions.ZoomX />
+                    <ChartInteractions.Pan />
+                  </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Failure Rate"/>
+                  <TimeseriesChart.YAxis label="Failure Rate" formatter={(value) => `${value.toFixed(2)} error(s)` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={from}
@@ -306,7 +323,7 @@ export const Details = () => {
             </Flex>
             <Flex flexDirection="column" width="50%">
               <Heading level={3}>Mean Response Time</Heading>
-              {error.isLoading && <ProgressCircle />}
+              {meantime.isLoading && <ProgressCircle />}
               {meantime.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(timeData, meantime.data?.types)}
@@ -341,8 +358,13 @@ export const Details = () => {
                   <ChartToolbar>
                     <ChartToolbar.DownloadData />
                   </ChartToolbar>
+                  <ChartInteractions>
+                    <ChartInteractions.Zoom />
+                    <ChartInteractions.ZoomX />
+                    <ChartInteractions.Pan />
+                  </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Mean Response Time (ms)"/>
+                  <TimeseriesChart.YAxis label="Mean Response Time (s)"  formatter={(value) => `${(value/1000).toFixed(2)} seconds` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={from}
@@ -351,10 +373,62 @@ export const Details = () => {
                 </TimeseriesChart>}
             </Flex>
           </Flex>
+          <Flex flexDirection="column" width="100%">
+            <Heading level={3}>Throughput</Heading>
+            {throughput.isLoading && <ProgressCircle />}
+            {throughput.data && 
+              <TimeseriesChart 
+                data={convertToTimeseries(throughputData, throughput.data?.types)}
+                variant="bar"
+                seriesActions={(seriesActions) => {
+                  const action = seriesActions as ExtendedTimeseries
+                  const link = action.name.reduce((result, item) => {
+                    if (result) return result; // Stop searching if a match is found
+                    return serviceLinks.find((service) =>
+                      service.tag.some((tag) => {
+                        const tagValue = tag.split(":");
+                        return tagValue[tagValue.length - 1] === item;
+                      })
+                    );
+                  }, null);
+
+                  return (
+                    <ChartSeriesAction>
+                      <ChartSeriesAction.Item
+                        onSelect={() => {
+                          window.open(link?.link)
+                        }}
+                      >
+                        <ChartSeriesAction.ItemIcon>
+                          <InternetIcon />
+                        </ChartSeriesAction.ItemIcon>
+                        {link?.name}
+                      </ChartSeriesAction.Item>
+                    </ChartSeriesAction>
+                  );
+                }}
+              >
+                <ChartToolbar>
+                  <ChartToolbar.DownloadData />
+                  <ChartInteractions>
+                    <ChartInteractions.Zoom />
+                    <ChartInteractions.ZoomX />
+                    <ChartInteractions.Pan />
+                  </ChartInteractions>
+                </ChartToolbar>
+                <TimeseriesChart.Legend hidden/>
+                <TimeseriesChart.YAxis label="Throughput"  formatter={(value) => `${value.toFixed(2)}/min` }/>
+                <TimeseriesChart.XAxis
+                  label="Time"
+                  min={from}
+                  max={to}
+                />
+              </TimeseriesChart>}
+          </Flex>
           <Flex flexDirection="row" width="100%">
             <Flex flexDirection="column" width="50%">
               <Heading level={3}>CPU Usage</Heading>
-              {error.isLoading && <ProgressCircle />}
+              {cpu.isLoading && <ProgressCircle />}
               {cpu.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(cpuData, cpu.data?.types)}
@@ -386,8 +460,13 @@ export const Details = () => {
                   <ChartToolbar>
                     <ChartToolbar.DownloadData />
                   </ChartToolbar>
+                  <ChartInteractions>
+                    <ChartInteractions.Zoom />
+                    <ChartInteractions.ZoomX />
+                    <ChartInteractions.Pan />
+                  </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="CPU Usage(%)"/>
+                  <TimeseriesChart.YAxis label="CPU Usage"  formatter={(value) => `${value.toFixed(2)}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={"-30d"}
@@ -397,7 +476,7 @@ export const Details = () => {
             </Flex>
             <Flex flexDirection="column" width="50%">
               <Heading level={3}>Memory Usage</Heading>
-              {error.isLoading && <ProgressCircle />}
+              {memory.isLoading && <ProgressCircle />}
               {memory.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(memoryData, memory.data?.types)}
@@ -429,8 +508,13 @@ export const Details = () => {
                   <ChartToolbar>
                     <ChartToolbar.DownloadData />
                   </ChartToolbar>
+                  <ChartInteractions>
+                    <ChartInteractions.Zoom />
+                    <ChartInteractions.ZoomX />
+                    <ChartInteractions.Pan />
+                  </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Memory Usage(%)"/>
+                  <TimeseriesChart.YAxis label="Memory Usage"  formatter={(value) => `${value.toFixed(2)}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={"-30d"}
