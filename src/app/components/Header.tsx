@@ -123,6 +123,9 @@ export const Header = () => {
       <AppHeader>
         <AppHeader.NavItems>
           <AppHeader.AppNavLink appName="Home Page" as={Link} to="/"/>
+          <AppHeader.NavItem as={Link} to="/CycleRun">
+            CycleRun
+          </AppHeader.NavItem>
           <AppHeader.NavItem onClick={() => setState(true)}>
             <SettingIcon /> Criteria List
           </AppHeader.NavItem>

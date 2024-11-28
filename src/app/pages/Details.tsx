@@ -1,7 +1,7 @@
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { Button, Container, Flex, Heading, List, ProgressCircle, SkeletonText, Text } from "@dynatrace/strato-components";
 import { ChartInteractions, ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, NumberInput, SimpleTable, Tab, TableColumn, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult, throughputQueryResult } from "../Data/QueryResult";
 import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import { InternetIcon } from "@dynatrace/strato-icons";
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { useDocContext } from "../components/DocProvider";
+import { Colors } from "@dynatrace/strato-design-tokens";
 
 interface ExtendedTimeseries extends Timeseries {
   name: string[];
@@ -20,10 +21,12 @@ export const Details = () => {
 
   const { docContent, setDocContent, updateDocContent } = useDocContext();
 
-  const cycle = "cycle01"
+  // console.log(run, cycle, from, to)
+
+  const cycle = "cycle03"
   const run = 'run01'
-  const from = '2024-11-12T06:00:00.000Z'
-  const to = '2024-11-19T03:00:00.000Z'
+  const from = '2024-11-22T06:00:00.000Z'
+  const to = '2024-11-26T06:00:00.000Z'
 
   const runQuery = useDqlQuery({
     body: {
@@ -33,8 +36,28 @@ export const Details = () => {
     }
   });
 
+  // let checkingDatapoint = useDqlQuery({
+  //   body: {
+  //     query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${from}", to: "${to}", by: { run, cycle }
+  //     | filter run == "${run}" and cycle == "${cycle}"`
+  //   }
+  // })
+
+  // do {
+  //   const datapoint = checkingDatapoint.data &&  convertToTimeseries(checkingDatapoint.data?.records, checkingDatapoint.data?.types)
+  //   const fstime = datapoint?.[0]?.datapoints?.[0]?.start?.toISOString();
+  //   const endtime = datapoint?.[0]?.datapoints?.[datapoint[0].datapoints.length - 1]?.start?.toISOString()
+  //   checkingDatapoint = useDqlQuery({
+  //     body: {
+  //       query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${fstime}", to: "${endtime}", by: { run, cycle }
+  //       | filter run == "${run}" and cycle == "${cycle}"`
+  //     }
+  //   })
+  //   console.log(checkingDatapoint.data?.records);
+  // } while (checkingDatapoint && checkingDatapoint.data?.records.every(item => item && item.meantime && Array.isArray(item.meantime) && item.meantime.map(value => value !== null)))
+
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
-  const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
+  const error =errorQueryResult({from: from, to: to, run: run, cycle: cycle});
   const meantime = meantimeQueryResult({from: from, to: to, run: run, cycle: cycle});
   const throughput = throughputQueryResult({from: from, to: to, run: run, cycle: cycle});
 
@@ -56,15 +79,29 @@ export const Details = () => {
   const cpu = cpuUsageQueryResult({from: from, to: to});
   const memory = memoryUsageQueryResult({from: from, to: to});
 
-  const errorData = error.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item) || [];
+  const failureRateData = error.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item).map(item => {
+    if (item && item.error && Array.isArray(item.error)) {
+      // Convert interval to minutes
+      const interval = Number(item.interval) / 1e9 / 60;
+
+      // Update count by dividing each element by interval
+      const updatedCount = item.error.map(data => typeof data == "number" ? (data / interval) : typeof data == "number" && data === 0 ? 0 : null);
+
+      // Return the updated item with the modified count
+      return { ...item, error: updatedCount };
+    }
+    return item; // Return the item as is if the conditions aren't met
+  }) || [];
+
   const timeData = meantime.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item) || [];
+
   const throughputData = throughput.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item).map(item => {
     if (item && item.count && Array.isArray(item.count)) {
       // Convert interval to minutes
       const interval = Number(item.interval) / 1e9 / 60;
 
       // Update count by dividing each element by interval
-      const updatedCount = item.count.map(data => typeof data == "number" ? (data / interval).toFixed(2) : null);
+      const updatedCount = item.count.map(data => typeof data == "number" ? (data / interval) : null);
 
       // Return the updated item with the modified count
       return { ...item, count: updatedCount };
@@ -74,6 +111,35 @@ export const Details = () => {
   const cpuData: any[] = [];
   const memoryData: any[] = [];
 
+  const errorPercentageData = failureRateData.map((failureItem) => {
+    // Get the corresponding throughput item
+    const throughputItem = throughputData.find(item => item && failureItem && item.cycle === failureItem.cycle && item.run === failureItem.run && item.transaction === failureItem.transaction);
+    
+    // Check if both failure and throughput data exist and are valid arrays
+    if (failureItem && throughputItem &&
+      failureItem.error &&
+      throughputItem.count &&
+      Array.isArray(failureItem.error) &&
+      Array.isArray(throughputItem.count)
+    ) {
+      // Calculate error percentage for each time interval
+      const errorPercentage = failureItem.error.map((errorValue, i) => {
+        const requestValue = throughputItem.count && throughputItem.count[i];
+        
+        // Check if both values are valid numbers before calculating
+        if (errorValue !== null && requestValue !== null && requestValue !== 0) {
+          return ((Number(errorValue) / requestValue) * 100).toFixed(2); // Convert to percentage and fix to 2 decimal places
+        } else if (requestValue === 0)
+          return 0
+        return null; // Return null for invalid or zero request values
+      });
+  
+      // Return the updated item with the error percentage
+      return { ...failureItem, error: errorPercentage };
+    }
+  
+    return { ...failureItem, error: null }; // Default to null if data is invalid
+  });
 
   host.forEach(item => {
     const matchingCpuHosts = cpu.data?.records?.filter(record => record?.id === item.id) || [];
@@ -88,7 +154,8 @@ export const Details = () => {
     return data
       .flatMap(item => item?.[field] || []) // Access the field dynamically
       .filter(value => typeof value === "number") // Filter only numbers
-      .reduce((sum, value, _, arr) => sum + value / arr.length, 0); // Calculate average
+      .reduce((sum, value, _, arr) => sum + value / arr.length, 0) // Calculate average
+      .toFixed(2);
   };
 
   const [matchedCriteria, setMatchedCriteria] = useState([]);
@@ -146,7 +213,7 @@ export const Details = () => {
     {
       metric: "Failure Rate",
       target: matchedCriteria ? matchedCriteria["Failure Rate"] : 10.0,
-      result: calculateAverage(errorData, "error"),
+      result: calculateAverage(failureRateData, "error"),
       status: ''
     },
     {
@@ -196,13 +263,18 @@ export const Details = () => {
       id: 'status',
       header: 'Status',
       accessor: row => row.value = row.result > row.target ? "Failed" : "Passed",
-      cell: (row) => {
-        return (
-          <DataTable.Cell>
-            {row.value === "Failed"  ? <DataTable.Cell style={{backgroundColor: 'red'}}/> : <DataTable.Cell style={{backgroundColor: 'green'}}/>}
-          </DataTable.Cell>
-        )
-      },
+      thresholds: [
+        {
+          value: "Failed",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Critical.Accent,
+        },
+        {
+          value: "Passed",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Success.Accent
+        }
+      ],
       ratioWidth:1
     }
   ]
@@ -230,7 +302,7 @@ export const Details = () => {
         const subRows = Object.values(value).map(value => value.toLocaleString())
         return {
           key: key,
-          value: subRows.join(" - "),
+          value: subRows.join(" to "),
         };
       } else {
         // Value is not an object; return a single row
@@ -275,7 +347,8 @@ export const Details = () => {
               {error.isLoading && <ProgressCircle />}
               {error.data && 
                 <TimeseriesChart 
-                  data={convertToTimeseries(errorData, error.data?.types)}
+                  data={convertToTimeseries(errorPercentageData, error.data?.types)}
+                  gapPolicy={"connect"}
                   seriesActions={(seriesActions) => {
                     const action = seriesActions as ExtendedTimeseries
                     const link = action.name.reduce((result, item) => {
@@ -313,7 +386,7 @@ export const Details = () => {
                     <ChartInteractions.Pan />
                   </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Failure Rate" formatter={(value) => `${value.toFixed(2)} error(s)` }/>
+                  <TimeseriesChart.YAxis label="Failure Rate" formatter={(value) => `${value.toFixed(2)}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={from}
@@ -327,6 +400,7 @@ export const Details = () => {
               {meantime.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(timeData, meantime.data?.types)}
+                  gapPolicy={"connect"}
                   seriesActions={(seriesActions) => {
                     const action = seriesActions as ExtendedTimeseries
                     const link = action.name.reduce((result, item) => {
@@ -379,7 +453,7 @@ export const Details = () => {
             {throughput.data && 
               <TimeseriesChart 
                 data={convertToTimeseries(throughputData, throughput.data?.types)}
-                variant="bar"
+                gapPolicy={"connect"}
                 seriesActions={(seriesActions) => {
                   const action = seriesActions as ExtendedTimeseries
                   const link = action.name.reduce((result, item) => {
@@ -432,6 +506,7 @@ export const Details = () => {
               {cpu.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(cpuData, cpu.data?.types)}
+                  gapPolicy={"connect"}
                   seriesActions={(seriesActions) => {
                     const action = seriesActions as ExtendedTimeseries
                     const link = action.name.reduce((result, item) => {
@@ -480,6 +555,7 @@ export const Details = () => {
               {memory.data && 
                 <TimeseriesChart 
                   data={convertToTimeseries(memoryData, memory.data?.types)}
+                  gapPolicy={"connect"}
                   seriesActions={(seriesActions) => {
                     const action = seriesActions as ExtendedTimeseries
                     const link = action.name.reduce((result, item) => {

@@ -10,6 +10,7 @@ import { ExternalLink, Link, List } from '@dynatrace/strato-components/typograph
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags } from "../components/MatchTags";
 import { useDocContext } from "../components/DocProvider";
+import { Colors } from "@dynatrace/strato-design-tokens";
 
 export const CycleRun = () => {
   const { docContent } = useDocContext();
@@ -307,7 +308,7 @@ export const CycleRun = () => {
       );
   
       return {
-        result: passes ? "Passes" : "Failed",
+        result: passes ? "Passed" : "Failed",
         criteriaType,
       };
     };
@@ -423,15 +424,37 @@ export const CycleRun = () => {
       accessor: 'passFail',
       autoWidth: true,
       ratioWidth: 1,
+      thresholds: [
+        {
+          value: "Failed (customized)",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Critical.Accent,
+        },
+        {
+          value: "Failed (default)",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Critical.Accent,
+        },
+        {
+          value: "Passed (customized)",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Success.Accent
+        },
+        {
+          value: "Passed (default)",
+          comparator: 'equal-to',
+          backgroundColor: Colors.Background.Container.Success.Accent
+        }
+      ],
       cell: (row) => {
         return (
           <>
             {(
               row.value.includes("Failed")
             ) ? (
-              <DataTable.Cell style={{ backgroundColor: 'red' }}>{row.value}</DataTable.Cell>
+              <DataTable.Cell>{row.value}</DataTable.Cell>
             ) : (
-              <DataTable.Cell style={{ backgroundColor: 'green' }}>{row.value}</DataTable.Cell>
+              <DataTable.Cell>{row.value}</DataTable.Cell>
             )}
           </>
         )
