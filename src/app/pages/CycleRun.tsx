@@ -8,9 +8,10 @@ import { subHours, subDays } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
 import { ExternalLink, Link, List } from '@dynatrace/strato-components/typography';
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
-import { MatchTags } from "../components/MatchTags";
+import { MatchTags, MatchTagsResult } from "../components/MatchTags";
 import { useDocContext } from "../components/DocProvider";
 import { Colors } from "@dynatrace/strato-design-tokens";
+import { queryExecutionClient } from "@dynatrace-sdk/client-query";
 
 export const CycleRun = () => {
   const { docContent } = useDocContext();
@@ -72,7 +73,7 @@ export const CycleRun = () => {
   // Filter logic
   useEffect(() => {
     const filtered = rowData.filter((row) => {
-      const matchesTransaction = !transactionFilter || transactionFilter.length === 0
+      const matchesTransaction = !transactionFilter || transactionFilter?.length === 0
         ? true
         : transactionFilter.some((filterValue) =>
             row.transactions.some((transaction) => transaction.includes(filterValue))
@@ -145,12 +146,6 @@ export const CycleRun = () => {
   });
 
   useEffect(() => {
-    // Reset row data and loading state when time changes
-    setLoading(true);
-    setRowData([]);
-  }, [time]);
-
-  useEffect(() => {
     setLoading(true);
     setRowData([])
     // Avoid re-render if there's no need to update
@@ -167,14 +162,14 @@ export const CycleRun = () => {
     ) {
       // When all data is loaded, process and update the rowData
       const processData = () => {
-        tags.data?.records.forEach((row) => {
-          renderCycleRunCell(row);
-          renderHostsCell(row);
-          renderProcessesCell(row);
-          renderServicesCell(row);
-          renderTransactionsCell(row);
-          renderScenariosCell(row)
-          renderPassFailCell(row);
+        tags.data?.records?.forEach((row) => {   
+            renderCycleRunCell(row);
+            renderHostsCell(row);
+            renderProcessesCell(row);
+            renderServicesCell(row);
+            renderTransactionsCell(row);
+            renderScenariosCell(row)
+            renderPassFailCell(row);
         });
         setLoading(false);
       };
@@ -183,8 +178,6 @@ export const CycleRun = () => {
     }
   }, [
     time,
-    time?.from.absoluteDate,
-    time?.to.absoluteDate,
     tags.isLoading,
     specificTimeUsage.isLoading,
     hosts.isLoading,
@@ -200,11 +193,12 @@ export const CycleRun = () => {
 
   // Function to render Cycle|Run column
   const renderCycleRunCell = (row) => {
-    const specificCycleRun = specificTimeUsage.data?.records.filter((item) => item && item.cycle === row.cycle && item.run === row.run);
-    const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types);
+    const specificCycleRun = specificTimeUsage?.data?.records?.filter((item) => item && item.cycle === row.cycle && item.run === row.run) || [];
+    const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
 
     const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
-    const end = datapoints?.[0]?.datapoints?.[datapoints[0].datapoints.length - 1]?.end?.toISOString();
+    const end = datapoints?.[0]?.datapoints?.[datapoints?.[0]?.datapoints.length - 1]?.end?.toISOString();
+    console.log(start, end)
     updateRowData(row.cycle, row.run, "cycleRun", { cycle: row.cycle, run: row.run, start: start, end: end });
   };
   
@@ -215,7 +209,7 @@ export const CycleRun = () => {
       row: row.transaction,
     });
   
-    const hostLinks = Array.from(hostsMatched.values()).map((host) => ({
+    const hostLinks = Array.from(hostsMatched.values())?.map((host) => ({
       name: host.name,
       link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${host.id}`,
     }));
@@ -229,7 +223,7 @@ export const CycleRun = () => {
       row: row.transaction,
     });
   
-    const processLinks = Array.from(processesMatched.values()).map((process) => ({
+    const processLinks = Array.from(processesMatched.values())?.map((process) => ({
       name: process.name,
       link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.technologies/#processgroupdetails;id=${process.id}`,
     }));
@@ -243,7 +237,7 @@ export const CycleRun = () => {
       row: row.transaction,
     });
 
-    const serviceLinks = Array.from(servicesMatched.values()).map((service) => ({
+    const serviceLinks = Array.from(servicesMatched.values())?.map((service) => ({
       name: service.name,
       link: `${getEnvironmentUrl()}/ui/apps/dynatrace.classic.services/ui/entity/${service.id}`,
     }));
@@ -260,39 +254,179 @@ export const CycleRun = () => {
   }
 
   // Function to render Pass/Fail column
-  const renderPassFailCell = (row) => {
+  const renderPassFailCell = async (row) => {
     const defaultCriteria = {
       "Failure Rate": 10.0,
       "Response Time": 120000.0,
       "CPU Usage": 90.0,
       "Memory Usage": 90.0,
     };
-  
-    // Utility: Filter records by cycle and run
-    const filterByCycleAndRun = (records) =>
-      records?.filter(r => r && r.cycle === row.cycle && r.run === row.run) || [];
-  
-    // Utility: Calculate average from values
-    const calculateAverage = (values) =>
-      values.length
-        ? values.reduce((sum, value) => sum + value, 0) / values.length
-        : 0;
+
+    const specificCycleRun = specificTimeUsage.data?.records.filter((item) => item && item.cycle === row.cycle && item.run === row.run) || [];
+    const datapoint = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
+
+    const start = datapoint && datapoint?.[0]?.datapoints?.[0]?.start?.toISOString();
+    const end = datapoint && datapoint?.[0]?.datapoints?.[datapoint?.[0]?.datapoints?.length - 1]?.end?.toISOString();
+
+    const [
+      errorToken,
+      throughputToken,
+      meantimeToken,
+      cpuToken,
+      memoryToken,
+      hostTagsToken,
+    ] = await Promise.all([
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `timeseries error = avg(jmeter.usermetrics.transaction.error), from: "${start}", to: "${end}", by: { run, cycle, transaction }
+                  | filter run == "${row.run}" and cycle == "${row.cycle}"
+                  | sort arrayAvg(error) desc`,
+        },
+      }),
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `timeseries count = avg(jmeter.usermetrics.transaction.count), from: "${start}", to: "${end}", by: { cycle, run, transaction }
+                  | filter run == "${row.run}" and cycle == "${row.cycle}"
+                  | sort arrayAvg(count) desc`,
+        },
+      }),
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${start}", to: "${end}", by: { run, cycle, transaction }
+                  | filter run == "${row.run}" and cycle == "${row.cycle}"
+                  | sort arrayAvg(meantime) desc`,
+        },
+      }),
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `timeseries usage = avg(dt.host.cpu.usage), from: "${start}", to: "${end}", by: { dt.entity.host }
+                  | fieldsAdd entityName(dt.entity.host)
+                  | fieldsRename id = dt.entity.host`,
+        },
+      }),
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `timeseries usage = avg(dt.host.memory.usage), from: "${start}", to: "${end}", by: { dt.entity.host }
+                  | fieldsAdd entityName(dt.entity.host)
+                  | fieldsRename id = dt.entity.host`,
+        },
+      }),
+      queryExecutionClient.queryExecute({
+        body: {
+          query: `fetch dt.entity.host, from: "${start}", to: "${end}"
+                  | fieldsAdd tags
+                  | filter isNotNull(tags)
+                  | fieldsRename name = entity.name`,
+        },
+      }),
+    ]);
+
+    const performanceValue = async () => {
+      if (
+        !errorToken?.requestToken ||
+        !throughputToken?.requestToken ||
+        !meantimeToken?.requestToken ||
+        !cpuToken?.requestToken ||
+        !memoryToken?.requestToken ||
+        !hostTagsToken?.requestToken
+      ) {
+        return {specificErrorPercentage: [], specificMeantimeData: [], matchedSpecificCpu: [], matchedSpecificMemory: []}
+      }
+    
+      // Poll all results in parallel
+      const [
+        specificError,
+        specificThroughput,
+        specificMeantime,
+        specificCpu,
+        specificMemory,
+        specificHostTags,
+      ] = await Promise.all([
+        queryExecutionClient.queryPoll({ requestToken: errorToken.requestToken }),
+        queryExecutionClient.queryPoll({ requestToken: throughputToken.requestToken }),
+        queryExecutionClient.queryPoll({ requestToken: meantimeToken.requestToken }),
+        queryExecutionClient.queryPoll({ requestToken: cpuToken.requestToken }),
+        queryExecutionClient.queryPoll({ requestToken: memoryToken.requestToken }),
+        queryExecutionClient.queryPoll({ requestToken: hostTagsToken.requestToken }),
+      ]);
+
+        const specificThroughputData = specificThroughput.result?.records?.filter(item => item?.cycle === row.cycle && item?.run === row.run)?.map(item => item)?.map(item => {
+          if (item && item.count && Array.isArray(item.count)) {
+            // Convert interval to minutes
+            const interval = Number(item.interval) / 1e9 / 60;
+      
+            // Update count by dividing each element by interval
+            const updatedCount = item.count?.map(data => typeof data === "number" ? (data / interval) : null);
+      
+            // Return the updated item with the modified count
+            return { ...item, count: updatedCount };
+          }
+          return item; // Return the item as is if the conditions aren't met
+        }) || [];
+
+        const specificErrorPercentage = specificError.result?.records.filter(item => item?.cycle === row.cycle && item?.run === row.run)?.map(item => item)?.map(failureItem => {
+          const specificThroughputItem = specificThroughputData.find(item => item && failureItem && item.cycle === failureItem.cycle && item.run === failureItem.run && item.transaction === failureItem.transaction);
+          if (Array.isArray(failureItem?.error)) {
+            // Convert interval to minutes
+            const interval = Number(failureItem?.interval) / 1e9 / 60;
+      
+            // Update count by dividing each element by interval
+            const updatedCount = failureItem?.error?.map((data, i) => {
+              const requestValue = specificThroughputItem?.count && specificThroughputItem.count[i];
+              if (data && requestValue  && requestValue !== 0) {
+                return Number((((Number(data) / interval) / requestValue) * 100).toFixed(2));
+              } else if (requestValue === 0) 
+                return 0
+              return null
+            });
+      
+            // Return the updated item with the modified count
+            return { ...failureItem, error: updatedCount };
+          }
+          return failureItem; // Return the item as is if the conditions aren't met
+        }) || [];
+
+        const matchedSpecificCpu: any[] = [];
+        const matchedSpecificMemory: any[] = [];
+
+        const host = MatchTagsResult({queryResult: specificHostTags, row: row.transaction})
+
+        host.forEach(item => {
+          const matchingCpuHosts = specificCpu.result?.records?.filter(record => record?.id === item.id) || [];
+          matchedSpecificCpu.push(...matchingCpuHosts);
+      
+          const matchingMemoryHosts = specificMemory.result?.records?.filter(record => record?.id === item.id) || [];
+          matchedSpecificMemory.push(...matchingMemoryHosts);
+        });
+        
+        const specificMeantimeData = specificMeantime.result?.records?.map(item => ({
+          ...item,
+          meantime: Array.isArray(item?.meantime)
+            ? item?.meantime?.map(value => (value ? Number(value) / 1000 : null))
+            : []
+        }));
+        
+        
+
+        return {specificErrorPercentage, specificMeantimeData, matchedSpecificCpu, matchedSpecificMemory}
+      }
+
+    
+    const { specificErrorPercentage, specificMeantimeData, matchedSpecificCpu, matchedSpecificMemory } = await performanceValue();
   
     // Utility: Calculate metric average from data and field
-    const calculateMetricAverage = (data, field) =>
-      calculateAverage(
-        filterByCycleAndRun(data?.records)
-          .map(r => r[field])
-          .flatMap(item => item)
-          .filter(value => typeof value === "number")
-      );
+    const calculateMetricAverage = (data, field) => data
+      ?.flatMap(item => item?.[field] || []) // Access the field dynamically
+      .filter(value => typeof value === "number") // Filter only numbers
+      .reduce((sum, value, _, arr) => sum + value / arr.length, 0) // Calculate average
+      .toFixed(2);
   
     // Generate average data for the row
     const getAvgData = () => ({
-      "Failure Rate": calculateMetricAverage(error.data, "error"),
-      "Response Time": calculateMetricAverage(meantime.data, "meantime"),
-      "CPU Usage": calculateMetricAverage(cpu.data, "usage"),
-      "Memory Usage": calculateMetricAverage(memory.data, "usage"),
+      "Failure Rate": calculateMetricAverage(specificErrorPercentage, "error"),
+      "Response Time": calculateMetricAverage(specificMeantimeData, "meantime"),
+      "CPU Usage": calculateMetricAverage(matchedSpecificCpu, "usage"),
+      "Memory Usage": calculateMetricAverage(matchedSpecificMemory, "usage"),
     });
   
     // Check criteria and return Pass/Fail with criteria type
@@ -351,7 +485,7 @@ export const CycleRun = () => {
     {
       id: 'hosts',
       header: 'Host(s)',
-      accessor: row => row.value = row.hosts.map(item => item.name).join("\n"),
+      accessor: row => row.value = row.hosts?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
@@ -365,7 +499,7 @@ export const CycleRun = () => {
     {
       id: 'processes',
       header: 'Process(es)',
-      accessor: row => row.value = row.processes.map(item => item.name).join("\n"),
+      accessor: row => row.value = row.processes?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
@@ -379,7 +513,7 @@ export const CycleRun = () => {
     {
       id: 'sercives',
       header: 'Service(s)',
-      accessor: row => row.value = row.services.map(item => item.name).join("\n"),
+      accessor: row => row.value = row.services?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
@@ -394,14 +528,14 @@ export const CycleRun = () => {
     {
       id: 'transactions',
       header: 'Transaction(s)',
-      accessor: row => row.value = row.transactions.join("\n"),
+      accessor: row => row.value = row.transactions?.join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
         return (
           <DataTable.Cell>
             <List>
-              {row.row.original.transactions.map(transaction => (
+              {row.row.original.transactions?.map(transaction => (
                 <Text>{transaction}</Text>
               ))}
             </List>
@@ -447,15 +581,16 @@ export const CycleRun = () => {
         }
       ],
       cell: (row) => {
+        const seperatedValue = row?.value?.split(" ")
         return (
           <>
-            {(
-              row.value.includes("Failed")
-            ) ? (
-              <DataTable.Cell>{row.value}</DataTable.Cell>
-            ) : (
-              <DataTable.Cell>{row.value}</DataTable.Cell>
-            )}
+            {!row.value && <ProgressCircle />}
+              <DataTable.Cell>
+                <Flex flexDirection="column">
+                  <Text textStyle="base-emphasized">{seperatedValue?.[0]}</Text>
+                  <Text textStyle="small">{seperatedValue?.[1]}</Text>
+                </Flex>
+              </DataTable.Cell>
           </>
         )
       }
@@ -490,7 +625,7 @@ export const CycleRun = () => {
           <FilterBar.Item name="transaction" label="Filter by transaction">
             <SelectV2 value={transactionFilter} onChange={setTransactionFilter} clearable multiple>
               <SelectV2.Content>
-                {Array.from(new Set(rowData.flatMap((row) => row.transactions))).map((transaction) => 
+                {Array.from(new Set(rowData?.flatMap((row) => row.transactions)))?.map((transaction) => 
                   <SelectV2.Option key={transaction} value={transaction}>
                     {transaction}
                   </SelectV2.Option>
@@ -508,7 +643,7 @@ export const CycleRun = () => {
             <FilterBar.Item name="hosts" label="Filter by host">
               <SelectV2 value={hostFilter} onChange={setHostFilter} clearable>
                 <SelectV2.Content>
-                  {Array.from(new Set(rowData.flatMap((row) => row.hosts?.map((host) => host.name)))).map((hostName) => (
+                  {Array.from(new Set(rowData?.flatMap((row) => row.hosts?.map((host) => host.name))))?.map((hostName) => (
                     <SelectV2.Option key={hostName} value={hostName}>
                       {hostName}
                     </SelectV2.Option>
@@ -519,7 +654,7 @@ export const CycleRun = () => {
             <FilterBar.Item name="processes" label="Filter by process">
               <SelectV2 value={processFilter} onChange={setProcessFilter} clearable>
                 <SelectV2.Content>
-                  {Array.from(new Set(rowData.flatMap((row) => row.processes?.map((process) => process.name)))).map((processName) => (
+                  {Array.from(new Set(rowData?.flatMap((row) => row.processes?.map((process) => process.name))))?.map((processName) => (
                     <SelectV2.Option key={processName} value={processName}>
                       {processName}
                     </SelectV2.Option>
@@ -530,7 +665,7 @@ export const CycleRun = () => {
             <FilterBar.Item name="services" label="Filter by service">
               <SelectV2 value={serviceFilter} onChange={setServiceFilter} clearable>
                 <SelectV2.Content>
-                  {Array.from(new Set(rowData.flatMap((row) => row.services?.map((service) => service.name)))).map((serviceName) => (
+                  {Array.from(new Set(rowData?.flatMap((row) => row.services?.map((service) => service.name))))?.map((serviceName) => (
                     <SelectV2.Option key={serviceName} value={serviceName}>
                       {serviceName}
                     </SelectV2.Option>

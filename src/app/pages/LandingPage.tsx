@@ -1,5 +1,5 @@
-import { Container, Flex } from '@dynatrace/strato-components'
-import { ChartInteractions, ChartToolbar, convertToTimeseries, DataTable, FilterBar, SelectV2, TimeframeSelector, TimeframeV2, Timeseries, TimeseriesChart } from '@dynatrace/strato-components-preview'
+import { Container, Flex, ProgressCircle } from '@dynatrace/strato-components'
+import { ChartInteractions, ChartToolbar, convertToTimeseries, DataTable, FilterBar, SelectV2, TableColumn, TimeframeSelector, TimeframeV2, Timeseries, TimeseriesChart } from '@dynatrace/strato-components-preview'
 import React, { useEffect, useState } from 'react'
 import { subDays } from "date-fns"
 import { useDqlQuery } from '@dynatrace-sdk/react-hooks'
@@ -28,6 +28,16 @@ export const LandingPage = () => {
     }
   });
 
+  const table = useDqlQuery({
+    body: {
+      query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${time?.from.absoluteDate}", to: "${time?.to.absoluteDate}", by: { run, cycle, transaction, scenario }
+        | summarize by:{transaction}, {cycle = collectArray(cycle), run = collectArray(run), scenario = collectArray(scenario)}
+        | filter isNotNull(cycle) and isNotNull(run)`
+    }
+  });
+
+  console.log(table)
+
   const chartData = chart.data?.records || [];
 
   // Deduplicate transactions
@@ -49,8 +59,34 @@ export const LandingPage = () => {
     setFilteredData(filtered);
   }, [transactionFilter, chartData]);
 
+  const columns: TableColumn[] = [
+    {
+      header: 'Transaction',
+      accessor: 'transaction',
+      ratioWidth: 1
+    },
+    {
+      header: 'Cycle',
+      accessor: 'cycle',
+      ratioWidth: 1,
+      cell: row => row.value.join('\n'),
+    },
+    {
+      header: 'Run',
+      accessor: 'run',
+      ratioWidth: 1,
+      cell: row => row.value.join('\n'),
+    },
+    {
+      header: 'Scenario',
+      accessor: 'scenario',
+      ratioWidth: 1,
+      cell: row => row.value.join('\n')
+    }
+  ]
+
   return (
-    <Flex width="100%" justifyContent="center" gap={16}>
+    <Flex width="100%" flexDirection='column' justifyContent="center" gap={16}>
       <Container width={"100%"}>
         <Flex width={"100%"} justifyContent='space-between' alignItems='center'>
           <FilterBar onFilterChange={() => {}}>
@@ -73,7 +109,8 @@ export const LandingPage = () => {
           </FilterBar>
           <TimeframeSelector value={time} onChange={setTime} />
         </Flex>
-        <Flex width={"100%"} marginTop={16}>
+        <Flex width={"100%"} marginTop={16} justifyContent='center' alignContent='center'>
+          {chart.isLoading && <ProgressCircle />}
           {chart.data && (
             <TimeseriesChart
               data={convertToTimeseries(filteredData, chart.data?.types)}
@@ -96,6 +133,11 @@ export const LandingPage = () => {
             </TimeseriesChart>
           )}
         </Flex>
+      </Container>
+      <Container width={"100%"}>
+        {table.data && <DataTable data={table.data?.records} columns={columns}>
+
+        </DataTable>}
       </Container>
     </Flex>
   );

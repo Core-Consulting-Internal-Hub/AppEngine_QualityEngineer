@@ -5,7 +5,7 @@ export const ExternalLinks = (props) => {
   return (
     <>
       <Flex flexDirection="column">
-        {props.links.length == 0 ? <Text>N/A</Text> : props.links.map(item => {
+        {props.links?.length == 0 ? <Text>N/A</Text> : props.links?.map(item => {
           return (
             <ExternalLink href={item.link}>
               <Link>{item.name}</Link>

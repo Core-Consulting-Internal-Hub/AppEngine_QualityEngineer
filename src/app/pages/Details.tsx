@@ -3,7 +3,6 @@ import { Button, Container, Flex, Heading, List, ProgressCircle, SkeletonText, T
 import { ChartInteractions, ChartSeriesAction, ChartToolbar, convertToTimeseries, DataTable, NumberInput, SimpleTable, Tab, TableColumn, Tabs, Timeseries, TimeseriesChart } from "@dynatrace/strato-components-preview";
 import React, { useEffect, useMemo, useState } from "react";
 import { cpuUsageQueryResult, errorQueryResult, hostTagsQueryResult, meantimeQueryResult, memoryUsageQueryResult, serviceTagsQueryResult, throughputQueryResult } from "../Data/QueryResult";
-import { PassCriteria } from "../components/PassCriteria";
 import { MatchTags, MatchTagsWithTags } from "../components/MatchTags";
 import { useLocation } from "react-router-dom";
 import { InternetIcon } from "@dynatrace/strato-icons";
@@ -36,28 +35,8 @@ export const Details = () => {
     }
   });
 
-  // let checkingDatapoint = useDqlQuery({
-  //   body: {
-  //     query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${from}", to: "${to}", by: { run, cycle }
-  //     | filter run == "${run}" and cycle == "${cycle}"`
-  //   }
-  // })
-
-  // do {
-  //   const datapoint = checkingDatapoint.data &&  convertToTimeseries(checkingDatapoint.data?.records, checkingDatapoint.data?.types)
-  //   const fstime = datapoint?.[0]?.datapoints?.[0]?.start?.toISOString();
-  //   const endtime = datapoint?.[0]?.datapoints?.[datapoint[0].datapoints.length - 1]?.start?.toISOString()
-  //   checkingDatapoint = useDqlQuery({
-  //     body: {
-  //       query: `timeseries meantime = avg(jmeter.usermetrics.transaction.meantime), from: "${fstime}", to: "${endtime}", by: { run, cycle }
-  //       | filter run == "${run}" and cycle == "${cycle}"`
-  //     }
-  //   })
-  //   console.log(checkingDatapoint.data?.records);
-  // } while (checkingDatapoint && checkingDatapoint.data?.records.every(item => item && item.meantime && Array.isArray(item.meantime) && item.meantime.map(value => value !== null)))
-
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
-  const error =errorQueryResult({from: from, to: to, run: run, cycle: cycle});
+  const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
   const meantime = meantimeQueryResult({from: from, to: to, run: run, cycle: cycle});
   const throughput = throughputQueryResult({from: from, to: to, run: run, cycle: cycle});
 
@@ -77,25 +56,12 @@ export const Details = () => {
   }));
 
   const cpu = cpuUsageQueryResult({from: from, to: to});
+  console.log(cpu)
   const memory = memoryUsageQueryResult({from: from, to: to});
 
-  const failureRateData = error.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item).map(item => {
-    if (item && item.error && Array.isArray(item.error)) {
-      // Convert interval to minutes
-      const interval = Number(item.interval) / 1e9 / 60;
+  const timeData = meantime.data?.records.map(item => ({...item, meantime: Array.isArray(item?.meantime) ? item?.meantime?.map(value => value ? Number(value) / 1000 : null) : []})) || [];
 
-      // Update count by dividing each element by interval
-      const updatedCount = item.error.map(data => typeof data == "number" ? (data / interval) : typeof data == "number" && data === 0 ? 0 : null);
-
-      // Return the updated item with the modified count
-      return { ...item, error: updatedCount };
-    }
-    return item; // Return the item as is if the conditions aren't met
-  }) || [];
-
-  const timeData = meantime.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item) || [];
-
-  const throughputData = throughput.data?.records?.filter(item => item?.cycle === cycle && item?.run === run).map(item => item).map(item => {
+  const throughputData = throughput.data?.records.map(item => {
     if (item && item.count && Array.isArray(item.count)) {
       // Convert interval to minutes
       const interval = Number(item.interval) / 1e9 / 60;
@@ -111,35 +77,27 @@ export const Details = () => {
   const cpuData: any[] = [];
   const memoryData: any[] = [];
 
-  const errorPercentageData = failureRateData.map((failureItem) => {
-    // Get the corresponding throughput item
-    const throughputItem = throughputData.find(item => item && failureItem && item.cycle === failureItem.cycle && item.run === failureItem.run && item.transaction === failureItem.transaction);
-    
-    // Check if both failure and throughput data exist and are valid arrays
-    if (failureItem && throughputItem &&
-      failureItem.error &&
-      throughputItem.count &&
-      Array.isArray(failureItem.error) &&
-      Array.isArray(throughputItem.count)
-    ) {
-      // Calculate error percentage for each time interval
-      const errorPercentage = failureItem.error.map((errorValue, i) => {
-        const requestValue = throughputItem.count && throughputItem.count[i];
-        
-        // Check if both values are valid numbers before calculating
-        if (errorValue !== null && requestValue !== null && requestValue !== 0) {
-          return ((Number(errorValue) / requestValue) * 100).toFixed(2); // Convert to percentage and fix to 2 decimal places
-        } else if (requestValue === 0)
+  const specificErrorPercentage = error.data?.records.map(failureItem => {
+    const specificThroughputItem = throughputData.find(item => item && failureItem && item.cycle === failureItem.cycle && item.run === failureItem.run && item.transaction === failureItem.transaction);
+    if (failureItem && Array.isArray(failureItem.error)) {
+      // Convert interval to minutes
+      const interval = Number(failureItem.interval) / 1e9 / 60;
+
+      // Update count by dividing each element by interval
+      const updatedCount = failureItem?.error.map((data, i) => {
+        const requestValue = specificThroughputItem?.count && specificThroughputItem.count[i];
+        if (data && requestValue  && requestValue !== 0) {
+          return Number((((Number(data) / interval) / requestValue) * 100).toFixed(2));
+        } else if (requestValue === 0) 
           return 0
-        return null; // Return null for invalid or zero request values
+        return null
       });
-  
-      // Return the updated item with the error percentage
-      return { ...failureItem, error: errorPercentage };
+
+      // Return the updated item with the modified count
+      return { ...failureItem, error: updatedCount };
     }
-  
-    return { ...failureItem, error: null }; // Default to null if data is invalid
-  });
+    return failureItem; // Return the item as is if the conditions aren't met
+  }) || [];
 
   host.forEach(item => {
     const matchingCpuHosts = cpu.data?.records?.filter(record => record?.id === item.id) || [];
@@ -151,11 +109,13 @@ export const Details = () => {
   
   // Function to calculate the average of an array
   const calculateAverage = (data, field) => {
-    return data
+    const value = data
       .flatMap(item => item?.[field] || []) // Access the field dynamically
       .filter(value => typeof value === "number") // Filter only numbers
       .reduce((sum, value, _, arr) => sum + value / arr.length, 0) // Calculate average
       .toFixed(2);
+
+      return Math.round(value * 100) / 100;
   };
 
   const [matchedCriteria, setMatchedCriteria] = useState([]);
@@ -207,13 +167,12 @@ export const Details = () => {
       }
     });
   };
-  
 
   const rowData = [
     {
       metric: "Failure Rate",
       target: matchedCriteria ? matchedCriteria["Failure Rate"] : 10.0,
-      result: calculateAverage(failureRateData, "error"),
+      result: calculateAverage(specificErrorPercentage, "error"),
       status: ''
     },
     {
@@ -291,7 +250,8 @@ export const Details = () => {
     },
     {
       header: '',
-      accessor: 'value'
+      accessor: 'value',
+      lineWrap: true,
     }
   ]
 
@@ -302,7 +262,7 @@ export const Details = () => {
         const subRows = Object.values(value).map(value => value.toLocaleString())
         return {
           key: key,
-          value: subRows.join(" to "),
+          value: subRows.join("  -  "),
         };
       } else {
         // Value is not an object; return a single row
@@ -319,7 +279,10 @@ export const Details = () => {
       <Flex width='100%' flexDirection="row">
         <Container width="100%">
           <Heading level={2}>Properties</Heading>
-          {propertiesData && <DataTable data={propertiesData} columns={propertiesColumns}/>}
+          <Flex width={'100%'} marginTop={32} flexDirection="column">
+            {!propertiesData && <ProgressCircle />}
+            {propertiesData && <DataTable data={propertiesData} columns={propertiesColumns}/>}
+          </Flex>
         </Container>
         <Container width="100%">
           <Heading level={2}>Success Criteria</Heading>
@@ -333,7 +296,7 @@ export const Details = () => {
                   <DataTable.DownloadData />
                 </DataTable.Toolbar>
                 </DataTable>
-                <Button color="primary" variant="emphasized" onClick={() => updateDocContent()}>Update</Button>
+                <Button color="primary" variant="accent" onClick={() => updateDocContent()}>Update</Button>
               </>
             )}
           </Flex>
@@ -347,14 +310,14 @@ export const Details = () => {
               {error.isLoading && <ProgressCircle />}
               {error.data && 
                 <TimeseriesChart 
-                  data={convertToTimeseries(errorPercentageData, error.data?.types)}
+                  data={convertToTimeseries(specificErrorPercentage, error.data?.types)}
                   gapPolicy={"connect"}
                   seriesActions={(seriesActions) => {
                     const action = seriesActions as ExtendedTimeseries
                     const link = action.name.reduce((result, item) => {
                       if (result) return result;
                       return serviceLinks.find((service) =>
-                        service.tag.some((tag) => {
+                        service.tag?.some((tag) => {
                           const tagValue = tag.split(":");
                           return tagValue[tagValue.length - 1] === item;
                         })
@@ -386,7 +349,7 @@ export const Details = () => {
                     <ChartInteractions.Pan />
                   </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Failure Rate" formatter={(value) => `${value.toFixed(2)}%` }/>
+                  <TimeseriesChart.YAxis label="Failure Rate" formatter={(value) => `${Math.round(value * 100) / 100}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={from}
@@ -406,7 +369,7 @@ export const Details = () => {
                     const link = action.name.reduce((result, item) => {
                       if (result) return result; // Stop searching if a match is found
                       return serviceLinks.find((service) =>
-                        service.tag.some((tag) => {
+                        service.tag?.some((tag) => {
                           const tagValue = tag.split(":");
                           return tagValue[tagValue.length - 1] === item;
                         })
@@ -438,7 +401,7 @@ export const Details = () => {
                     <ChartInteractions.Pan />
                   </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Mean Response Time (s)"  formatter={(value) => `${(value/1000).toFixed(2)} seconds` }/>
+                  <TimeseriesChart.YAxis label="Mean Response Time (s)"  formatter={(value) => `${Math.round(value * 100) / 100}s` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={from}
@@ -459,7 +422,7 @@ export const Details = () => {
                   const link = action.name.reduce((result, item) => {
                     if (result) return result; // Stop searching if a match is found
                     return serviceLinks.find((service) =>
-                      service.tag.some((tag) => {
+                      service.tag?.some((tag) => {
                         const tagValue = tag.split(":");
                         return tagValue[tagValue.length - 1] === item;
                       })
@@ -491,7 +454,7 @@ export const Details = () => {
                   </ChartInteractions>
                 </ChartToolbar>
                 <TimeseriesChart.Legend hidden/>
-                <TimeseriesChart.YAxis label="Throughput"  formatter={(value) => `${value.toFixed(2)}/min` }/>
+                <TimeseriesChart.YAxis label="Throughput"  formatter={(value) => `${Math.round(value * 100) / 100}/min` }/>
                 <TimeseriesChart.XAxis
                   label="Time"
                   min={from}
@@ -541,7 +504,7 @@ export const Details = () => {
                     <ChartInteractions.Pan />
                   </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="CPU Usage"  formatter={(value) => `${value.toFixed(2)}%` }/>
+                  <TimeseriesChart.YAxis label="CPU Usage"  formatter={(value) => `${Math.round(value * 100) / 100}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={"-30d"}
@@ -590,7 +553,7 @@ export const Details = () => {
                     <ChartInteractions.Pan />
                   </ChartInteractions>
                   <TimeseriesChart.Legend hidden/>
-                  <TimeseriesChart.YAxis label="Memory Usage"  formatter={(value) => `${value.toFixed(2)}%` }/>
+                  <TimeseriesChart.YAxis label="Memory Usage"  formatter={(value) => `${Math.round(value * 100) / 100}%` }/>
                   <TimeseriesChart.XAxis
                     label="Time"
                     min={"-30d"}

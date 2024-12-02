@@ -76,7 +76,7 @@ export const meantimeQueryResultScenario = ({from, to}) => {
 export const cpuUsageQueryResult = ({from, to}) => {
   return useDqlQuery({
   body: {
-    query: `timeseries usage = avg(dt.host.cpu.usage), from: -30d, to: "${to}", by: { dt.entity.host }
+    query: `timeseries usage = avg(dt.host.cpu.usage), from: "${from}", to: "${to}", by: { dt.entity.host }
       | fieldsAdd entityName(dt.entity.host)
       | fieldsRename id = dt.entity.host`
   }
@@ -85,7 +85,7 @@ export const cpuUsageQueryResult = ({from, to}) => {
 export const memoryUsageQueryResult = ({from, to}) => {
   return useDqlQuery({
   body: {
-    query: `timeseries usage = avg(dt.host.memory.usage), from: -30d, to: "${to}", by: { dt.entity.host }
+    query: `timeseries usage = avg(dt.host.memory.usage), from: "${from}", to: "${to}", by: { dt.entity.host }
       | fieldsAdd entityName(dt.entity.host)
       | fieldsRename id = dt.entity.host`
   }
