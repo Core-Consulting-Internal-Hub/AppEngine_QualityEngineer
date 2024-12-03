@@ -15,17 +15,17 @@ interface ExtendedTimeseries extends Timeseries {
 }
 
 export const Details = () => {
-  // const location = useLocation();
-  // const { run, cycle, from, to} = location.state || {};
+  const location = useLocation();
+  const { run, cycle, from, to} = location.state || {};
 
   const { docContent, setDocContent, updateDocContent } = useDocContext();
 
   // console.log(run, cycle, from, to)
 
-  const cycle = "cycle03"
-  const run = 'run01'
-  const from = '2024-11-22T06:00:00.000Z'
-  const to = '2024-11-26T06:00:00.000Z'
+  // const cycle = "cycle01"
+  // const run = 'run07'
+  // const from = '2024-12-02T06:00:00.000Z'
+  // const to = '2024-12-02T07:00:00.000Z'
 
   const runQuery = useDqlQuery({
     body: {
@@ -37,6 +37,7 @@ export const Details = () => {
 
   const transactions = runQuery.data?.records[0] && runQuery.data?.records[0].transaction;
   const error = errorQueryResult({from: from, to: to, run: run, cycle: cycle});
+  console.log(error)
   const meantime = meantimeQueryResult({from: from, to: to, run: run, cycle: cycle});
   const throughput = throughputQueryResult({from: from, to: to, run: run, cycle: cycle});
 
@@ -56,7 +57,6 @@ export const Details = () => {
   }));
 
   const cpu = cpuUsageQueryResult({from: from, to: to});
-  console.log(cpu)
   const memory = memoryUsageQueryResult({from: from, to: to});
 
   const timeData = meantime.data?.records.map(item => ({...item, meantime: Array.isArray(item?.meantime) ? item?.meantime?.map(value => value ? Number(value) / 1000 : null) : []})) || [];
@@ -74,6 +74,7 @@ export const Details = () => {
     }
     return item; // Return the item as is if the conditions aren't met
   }) || [];
+
   const cpuData: any[] = [];
   const memoryData: any[] = [];
 
@@ -86,7 +87,7 @@ export const Details = () => {
       // Update count by dividing each element by interval
       const updatedCount = failureItem?.error.map((data, i) => {
         const requestValue = specificThroughputItem?.count && specificThroughputItem.count[i];
-        if (data && requestValue  && requestValue !== 0) {
+        if (typeof data === 'number' && typeof requestValue === 'number' && requestValue !== 0) {
           return Number((((Number(data) / interval) / requestValue) * 100).toFixed(2));
         } else if (requestValue === 0) 
           return 0
@@ -123,7 +124,10 @@ export const Details = () => {
     const matchingCriteria = await docContent.find(
       (criteria) => criteria.cycle === cycle && criteria.run === run
     );
-    const criteria = matchingCriteria?.criteria;
+
+    const criteria = matchingCriteria?.criteria || docContent.find(
+      (criteria) => criteria.cycle === "default" && criteria.run === "default"
+    )?.criteria;
 
     setMatchedCriteria(criteria);
   }
@@ -170,26 +174,26 @@ export const Details = () => {
 
   const rowData = [
     {
-      metric: "Failure Rate",
-      target: matchedCriteria ? matchedCriteria["Failure Rate"] : 10.0,
+      metric: "Failure Rate(%)",
+      target: matchedCriteria?.["Failure Rate"],
       result: calculateAverage(specificErrorPercentage, "error"),
       status: ''
     },
     {
-      metric: "Response Time",
-      target: matchedCriteria ? matchedCriteria["Response Time"] : 120000.0,
+      metric: "Response Time (second)",
+      target: matchedCriteria?.["Response Time"],
       result: calculateAverage(timeData, "meantime"),
       status: ''
     },
     {
-      metric: "CPU Usage",
-      target: matchedCriteria ? matchedCriteria["CPU Usage"] : 90.0,
+      metric: "CPU Usage (%)",
+      target: matchedCriteria?.["CPU Usage"],
       result: calculateAverage(cpuData, "usage"),
       status: ''
     },
     {
-      metric: "Memory Usage",
-      target: matchedCriteria ? matchedCriteria["Memory Usage"] : 90.0,
+      metric: "Memory Usage (%)",
+      target: matchedCriteria?.["Memory Usage"],
       result: calculateAverage(memoryData, "usage"),
       status: ''
     },
@@ -262,7 +266,7 @@ export const Details = () => {
         const subRows = Object.values(value).map(value => value.toLocaleString())
         return {
           key: key,
-          value: subRows.join("  -  "),
+          value: subRows.join("  ->  "),
         };
       } else {
         // Value is not an object; return a single row
@@ -281,7 +285,16 @@ export const Details = () => {
           <Heading level={2}>Properties</Heading>
           <Flex width={'100%'} marginTop={32} flexDirection="column">
             {!propertiesData && <ProgressCircle />}
-            {propertiesData && <DataTable data={propertiesData} columns={propertiesColumns}/>}
+            {propertiesData && <DataTable 
+              data={propertiesData} 
+              columns={propertiesColumns}
+              variant={{
+                rowDensity: 'default',
+                rowSeparation: 'zebraStripes',
+                verticalDividers: true,
+                contained: true,
+              }}
+            />}
           </Flex>
         </Container>
         <Container width="100%">
@@ -291,7 +304,16 @@ export const Details = () => {
               <SkeletonText />
             ) : (
               <>
-                <DataTable data={rowData} columns={columns}>
+                <DataTable 
+                  data={rowData} 
+                  columns={columns}
+                  variant={{
+                    rowDensity: 'default',
+                    rowSeparation: 'zebraStripes',
+                    verticalDividers: true,
+                    contained: true,
+                  }}
+                  >
                 <DataTable.Toolbar>
                   <DataTable.DownloadData />
                 </DataTable.Toolbar>

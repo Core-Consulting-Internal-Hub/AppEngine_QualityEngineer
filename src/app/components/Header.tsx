@@ -174,7 +174,8 @@ export const Header = () => {
             <Flex flexDirection="column" width={"24%"}>
                 <Flex justifyContent="space-between" alignItems="center">
                   <Heading level={6}>Cycle|Run: {item.cycle}|{item.run}</Heading>
-                  <Button onClick={() => handleDelete(item.cycle, item.run)}><DeleteIcon/></Button>
+                  {item.cycle !== 'dafault' && item.run !== 'default' ? 
+                  <Button onClick={() => handleDelete(item.cycle, item.run)}><DeleteIcon/></Button> : undefined}
                 </Flex>
                 {Object.entries(item.criteria).map(([key, value]) => {
                   return (

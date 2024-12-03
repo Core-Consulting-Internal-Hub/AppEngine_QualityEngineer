@@ -3,10 +3,10 @@ import { convertToTimeseries, DataTable, FilterBar, SelectV2, TableColumn, TextI
 import React, { useEffect, useState } from "react";
 import { useDqlQuery } from "@dynatrace-sdk/react-hooks";
 import { ExternalLinks } from "../components/ExternalLinks";
-import { cpuUsageQueryResult, errorQueryResultScenario, hostTagsQueryResult, meantimeQueryResultScenario, memoryUsageQueryResult, processTagsQueryResult, serviceTagsQueryResult, tagsQueryResult } from "../Data/QueryResult";
-import { subHours, subDays } from "date-fns"
+import { hostTagsQueryResult, processTagsQueryResult, serviceTagsQueryResult, tagsQueryResult } from "../Data/QueryResult";
+import { subHours } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
-import { ExternalLink, Link, List } from '@dynatrace/strato-components/typography';
+import { Link, List } from '@dynatrace/strato-components/typography';
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags, MatchTagsResult } from "../components/MatchTags";
 import { useDocContext } from "../components/DocProvider";
@@ -17,8 +17,8 @@ export const CycleRun = () => {
   const { docContent } = useDocContext();
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
-      absoluteDate: subDays(new Date(), 14).toISOString(),
-      value: 'now()-14d',
+      absoluteDate: subHours(new Date(), 2).toISOString(),
+      value: 'now()-2h',
       type: 'expression',
     },
     to: {
@@ -59,7 +59,7 @@ export const CycleRun = () => {
     });
   };
 
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
   const [filteredData, setFilteredData] = useState<any[]>([]); // State for filtered data
 
   // States for filters
@@ -124,41 +124,17 @@ export const CycleRun = () => {
   const hosts = hostTagsQueryResult({ from: time?.from.absoluteDate, to: time?.to.absoluteDate });
   const processes = processTagsQueryResult({ from: time?.from.absoluteDate, to: time?.to.absoluteDate });
   const services = serviceTagsQueryResult({ from: time?.from.absoluteDate, to: time?.to.absoluteDate });
-  
-  const error = errorQueryResultScenario({
-    from: time?.from.absoluteDate,
-    to: time?.to.absoluteDate,
-  });
-
-  const meantime = meantimeQueryResultScenario({
-    from: time?.from.absoluteDate,
-    to: time?.to.absoluteDate,
-  });
-
-  const cpu = cpuUsageQueryResult({
-    from: time?.from.absoluteDate,
-    to: time?.to.absoluteDate,
-  });
-
-  const memory = memoryUsageQueryResult({
-    from: time?.from.absoluteDate,
-    to: time?.to.absoluteDate,
-  });
 
   useEffect(() => {
     setLoading(true);
-    setRowData([])
+    setRowData([]);
     // Avoid re-render if there's no need to update
     if (
       !tags.isLoading &&
       !specificTimeUsage.isLoading &&
       !hosts.isLoading &&
       !processes.isLoading &&
-      !services.isLoading &&
-      !error.isLoading &&
-      !meantime.isLoading &&
-      !cpu.isLoading &&
-      !memory.isLoading
+      !services.isLoading
     ) {
       // When all data is loaded, process and update the rowData
       const processData = () => {
@@ -177,16 +153,11 @@ export const CycleRun = () => {
       processData();
     }
   }, [
-    time,
     tags.isLoading,
     specificTimeUsage.isLoading,
     hosts.isLoading,
     processes.isLoading,
     services.isLoading,
-    error.isLoading,
-    meantime.isLoading,
-    cpu.isLoading,
-    memory.isLoading,
     docContent,
   ]);
   // Ensure to check for all data once everything is fetched.  
@@ -198,7 +169,6 @@ export const CycleRun = () => {
 
     const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
     const end = datapoints?.[0]?.datapoints?.[datapoints?.[0]?.datapoints.length - 1]?.end?.toISOString();
-    console.log(start, end)
     updateRowData(row.cycle, row.run, "cycleRun", { cycle: row.cycle, run: row.run, start: start, end: end });
   };
   
@@ -255,13 +225,6 @@ export const CycleRun = () => {
 
   // Function to render Pass/Fail column
   const renderPassFailCell = async (row) => {
-    const defaultCriteria = {
-      "Failure Rate": 10.0,
-      "Response Time": 120000.0,
-      "CPU Usage": 90.0,
-      "Memory Usage": 90.0,
-    };
-
     const specificCycleRun = specificTimeUsage.data?.records.filter((item) => item && item.cycle === row.cycle && item.run === row.run) || [];
     const datapoint = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
 
@@ -325,9 +288,9 @@ export const CycleRun = () => {
       if (
         !errorToken?.requestToken ||
         !throughputToken?.requestToken ||
-        !meantimeToken?.requestToken ||
-        !cpuToken?.requestToken ||
-        !memoryToken?.requestToken ||
+        !meantimeToken?.requestToken || 
+        !cpuToken?.requestToken || 
+        !memoryToken?.requestToken || 
         !hostTagsToken?.requestToken
       ) {
         return {specificErrorPercentage: [], specificMeantimeData: [], matchedSpecificCpu: [], matchedSpecificMemory: []}
@@ -373,7 +336,7 @@ export const CycleRun = () => {
             // Update count by dividing each element by interval
             const updatedCount = failureItem?.error?.map((data, i) => {
               const requestValue = specificThroughputItem?.count && specificThroughputItem.count[i];
-              if (data && requestValue  && requestValue !== 0) {
+              if (typeof data === 'number' && typeof requestValue === 'number' && requestValue !== 0) {
                 return Number((((Number(data) / interval) / requestValue) * 100).toFixed(2));
               } else if (requestValue === 0) 
                 return 0
@@ -434,7 +397,11 @@ export const CycleRun = () => {
       const matchingCriteria = docContent.find(
         (criteria) => criteria.cycle === cycle && criteria.run === run
       );
-      const criteria = matchingCriteria?.criteria || defaultCriteria;
+
+      const criteria = matchingCriteria?.criteria || docContent.find(
+        (criteria) => criteria.cycle === "default" && criteria.run === "default"
+      )?.criteria;
+
       const criteriaType = matchingCriteria ? "customized" : "default";
       
       const passes = Object.entries(avgData).every(
@@ -451,7 +418,7 @@ export const CycleRun = () => {
     const avgData = getAvgData();
     const { result, criteriaType } = checkCriteria(avgData, docContent, row.cycle, row.run);
   
-    // Update row data if needed
+    // Update row data if neededspecificError,
     updateRowData(row.cycle, row.run, "passFail", `${result} (${criteriaType})`);
   };
   
@@ -460,7 +427,7 @@ export const CycleRun = () => {
     {
       id: 'cycleRun',
       header: 'Cycle|Run',
-      accessor: row => row.value = `${row.cycleRun.cycle}|${row.cycleRun.run}`,
+      accessor: row => `${row.cycleRun.cycle}|${row.cycleRun.run}`,
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
@@ -485,7 +452,7 @@ export const CycleRun = () => {
     {
       id: 'hosts',
       header: 'Host(s)',
-      accessor: row => row.value = row.hosts?.map(item => item.name).join("\n"),
+      accessor: row => row.hosts?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
@@ -499,7 +466,7 @@ export const CycleRun = () => {
     {
       id: 'processes',
       header: 'Process(es)',
-      accessor: row => row.value = row.processes?.map(item => item.name).join("\n"),
+      accessor: row => row.processes?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
@@ -513,7 +480,7 @@ export const CycleRun = () => {
     {
       id: 'sercives',
       header: 'Service(s)',
-      accessor: row => row.value = row.services?.map(item => item.name).join("\n"),
+      accessor: row => row.services?.map(item => item.name).join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
@@ -528,7 +495,7 @@ export const CycleRun = () => {
     {
       id: 'transactions',
       header: 'Transaction(s)',
-      accessor: row => row.value = row.transactions?.join("\n"),
+      accessor: row => row.transactions?.join("\n"),
       autoWidth: true,
       ratioWidth: 2,
       cell: (row) => {
@@ -548,10 +515,11 @@ export const CycleRun = () => {
       accessor: "scenarios",
       autoWidth: true,
       ratioWidth: 1,
-      // sortType: (a, b) => {
-      //   console.log(a.values.scenarios)
-      //   return 0;
-      // }
+      sortType: (a, b) => {
+        const numA = parseInt(a.values.scenarios, 10); // Extracts the number from the string
+        const numB = parseInt(b.values.scenarios, 10);
+        return numA - numB; // Sort numerically
+      }
     },
     {
       header: 'Pass/Fail(Criteria)',
@@ -704,7 +672,8 @@ export const CycleRun = () => {
           rowSeparation: 'zebraStripes',
           verticalDividers: true,
           contained: true,
-        }}>
+        }}
+      >
           <DataTable.Toolbar>
             <DataTable.DownloadData />
           </DataTable.Toolbar>

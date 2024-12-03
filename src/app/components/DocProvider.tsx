@@ -3,6 +3,7 @@ import { documentsClient } from "@dynatrace-sdk/client-document";
 
 interface DocContextType {
   docContent: any[];
+  docData: any;
   setDocContent: React.Dispatch<React.SetStateAction<any[]>>;
   updateDocContent: () => Promise<void>;
 }
@@ -12,6 +13,8 @@ const DocContext = createContext<DocContextType | undefined>(undefined);
 export const DocProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [docContent, setDocContent] = useState<any[]>([]);
   const [docData, setDocData] = useState<any>();
+
+  console.log(docData)
 
   const fetchAndLoadDocContent = async () => {
     try {
@@ -81,7 +84,7 @@ export const DocProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   return (
-    <DocContext.Provider value={{ docContent, setDocContent, updateDocContent }}>
+    <DocContext.Provider value={{ docContent, docData, setDocContent, updateDocContent }}>
       {children}
     </DocContext.Provider>
   );
