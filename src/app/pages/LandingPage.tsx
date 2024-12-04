@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Flex, Heading, ProgressCircle, Text } from '@dynatrace/strato-components';
+import { Container, Flex, Heading, Link, ProgressCircle, Text } from '@dynatrace/strato-components';
 import {
   ChartInteractions,
   ChartToolbar,
@@ -16,6 +16,7 @@ import {
   TimeframeV2,
   TimeseriesChart,
 } from '@dynatrace/strato-components-preview';
+import { Link as RouterLink } from 'react-router-dom';
 import { subDays, subHours, subMinutes } from 'date-fns';
 import { useDqlQuery } from '@dynatrace-sdk/react-hooks';
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
@@ -393,14 +394,24 @@ export const LandingPage = () => {
       accessor: row => row.crs,
       autoWidth: true,
       ratioWidth: 1,
-      cell: (row) => 
+      cell: (row) => {
+        const specificCycleRun = specificTimeUsage?.data?.records?.filter((item) => row.value.map(crs => item?.cycle === crs?.[0] && item?.run === crs?.[1])) || [];
+        const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
+
+        const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
+        const end = datapoints?.[0]?.datapoints?.[datapoints?.[0]?.datapoints.length - 1]?.end?.toISOString();
+        return (
           <DataTable.Cell>
             <Flex width={'100%'} flexDirection='column'>
               {row.value.map(item => 
-                <Text style={{color: item[item?.length-1] === 'Failed' ? Colors.Text.Critical.Default : Colors.Text.Success.Default}}>{item.slice(0, 3).join(' | ')}</Text>
+                <Link as={RouterLink} to="/details" state={{cycle: item?.[0], run: item?.[1], from: start, to: end}}>
+                  <Text style={{color: item[item?.length-1] === 'Failed' ? Colors.Text.Critical.Default : Colors.Text.Success.Default}}>{item.slice(0, 3).join(' | ')}</Text>
+                </Link>
               )}
             </Flex>
           </DataTable.Cell>
+        )
+      }
     },
     {
       id: 'number of pass',
