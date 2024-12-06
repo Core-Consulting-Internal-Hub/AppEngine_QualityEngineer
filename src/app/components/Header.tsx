@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader, FormField, FormFieldMessages, Label, Modal, NumberInput, Overlay, TextInput, useMergeRefs, useOverlayWithTrigger } from "@dynatrace/strato-components-preview";
-import { Button, Container, Flex, Heading } from "@dynatrace/strato-components"
+import { Button, Container, Flex, Heading, Text } from "@dynatrace/strato-components"
 import { DeleteIcon, HomeIcon, PlusIcon, SettingIcon } from "@dynatrace/strato-icons";
 import { useDocContext } from "./DocProvider";
 
 export const Header = () => {
   const [ state, setState ] = useState(false);
-  const { docContent, setDocContent, updateDocContent } = useDocContext();
+  const { docContent, docData, setDocContent, updateDocContent } = useDocContext();
   const {
     targetRef,
     triggerRef,
@@ -20,7 +20,7 @@ export const Header = () => {
     offset: 8,
   });
   const rootRef = useMergeRefs([triggerRef, targetRef]);
-
+  console.log(docData)
   const [formData, setFormData] = useState({
     cycle: '',
     run: '',
@@ -122,17 +122,23 @@ export const Header = () => {
     <>
       <AppHeader>
         <AppHeader.NavItems>
-          <AppHeader.AppNavLink appName="Home Page" as={Link} to="/"/>
+          <AppHeader.AppNavLink appName="Dashboard" as={Link} to="/"/>
           <AppHeader.NavItem as={Link} to="/CycleRun">
-            CycleRun
-          </AppHeader.NavItem>
-          <AppHeader.NavItem onClick={() => setState(true)}>
-            <SettingIcon /> Criteria List
+            Cycle & Run
           </AppHeader.NavItem>
         </AppHeader.NavItems>
+        <AppHeader.ActionItems>
+          <AppHeader.ActionButton
+            prefixIcon={<SettingIcon />}
+            onClick={() => setState(true)}
+          >
+            Criteria List
+          </AppHeader.ActionButton>
+        </AppHeader.ActionItems>
       </AppHeader>
       <Modal title={"Success Criteria List"} show={state} onDismiss={() => {setState(false); updateDocContent();}} size="large">
-        <Flex flexDirection="row" justifyContent="end" gap={16}>
+        <Flex flexDirection="row" justifyContent="end" gap={16} alignItems="center">
+          <Text>Last Updated: {docData?.modificationInfo?.lastModifiedTime.toLocaleString()}</Text>
           <Button ref={rootRef} {...overlayTriggerProps} variant="emphasized">
             <PlusIcon /> Add New Criteria
           </Button>

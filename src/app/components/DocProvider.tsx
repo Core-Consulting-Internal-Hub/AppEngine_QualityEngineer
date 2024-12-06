@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { documentsClient } from "@dynatrace-sdk/client-document";
+import {
+  ToastContainer,
+  ToastOptions,
+  showToast,
+} from '@dynatrace/strato-components-preview/notifications';
+import { Text } from '@dynatrace/strato-components';
 
 interface DocContextType {
   docContent: any[];
@@ -73,6 +79,15 @@ export const DocProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           content: new Blob([JSON.stringify(docContent)], { type: "application/json" }),
         },
       });
+      showToast({
+        title: 'Successfully Updated',
+        type: 'success',
+        message: (
+          <Text>
+            The Latest Criteria List has been updated
+          </Text>
+        ),
+      })
       await fetchAndLoadDocContent(); // Reload the latest data
     } catch (error) {
       console.error("Error updating document content:", error);

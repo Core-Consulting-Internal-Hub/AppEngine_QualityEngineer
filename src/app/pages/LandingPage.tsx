@@ -27,8 +27,8 @@ import { Colors } from '@dynatrace/strato-design-tokens';
 export const LandingPage = () => {
   const [time, setTime] = useState<TimeframeV2 | null>({
     from: {
-      absoluteDate: subHours(new Date(), 24).toISOString(),
-      value: 'now()-24h',
+      absoluteDate: subHours(new Date(), 2).toISOString(),
+      value: 'now()-2h',
       type: 'expression',
     },
     to: {
@@ -250,7 +250,7 @@ export const LandingPage = () => {
           // Update count by dividing each element by interval
           const updatedCount = failureItem?.error?.map((data, i) => {
             const requestValue = specificThroughputItem?.count && specificThroughputItem.count[i];
-            if (data && requestValue  && requestValue !== 0) {
+            if (typeof data === 'number' && typeof requestValue === 'number' && requestValue !== 0) {
               return Number((((Number(data) / interval) / requestValue) * 100).toFixed(2));
             } else if (requestValue === 0) 
               return 0
@@ -326,7 +326,8 @@ export const LandingPage = () => {
     // Main logic
     const avgData = getAvgData();
     const { result, criteriaType } = checkCriteria(avgData, docContent, crs[0], crs[1]);
-  
+    
+    console.log(avgData)
     // Update row data if needed
     updateCRS(transaction, crs, result);
 }
@@ -346,7 +347,7 @@ export const LandingPage = () => {
         }) : 0
       });
     }
-  }, [table.isLoading, specificTimeUsage.isLoading])
+  }, [table.isLoading, specificTimeUsage.isLoading, docContent])
 
   useEffect(() => {
     const filteredChartData = chartData.filter((row) => {
@@ -395,18 +396,19 @@ export const LandingPage = () => {
       autoWidth: true,
       ratioWidth: 1,
       cell: (row) => {
-        const specificCycleRun = specificTimeUsage?.data?.records?.filter((item) => row.value.map(crs => item?.cycle === crs?.[0] && item?.run === crs?.[1])) || [];
-        const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
-
-        const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
-        const end = datapoints?.[0]?.datapoints?.[datapoints?.[0]?.datapoints.length - 1]?.end?.toISOString();
         return (
           <DataTable.Cell>
             <Flex width={'100%'} flexDirection='column'>
-              {row.value.map(item => 
-                <Link as={RouterLink} to="/details" state={{cycle: item?.[0], run: item?.[1], from: start, to: end}}>
+              {row.value.map(item => { 
+                const specificCycleRun = specificTimeUsage?.data?.records?.filter((data) => data?.cycle === item?.[0] && data?.run === item?.[1]) || [];
+                const datapoints = specificCycleRun && specificTimeUsage?.data && convertToTimeseries(specificCycleRun, specificTimeUsage.data.types) || [];
+        
+                const start = datapoints?.[0]?.datapoints?.[0]?.start?.toISOString();
+                const end = datapoints?.[0]?.datapoints?.[datapoints?.[0]?.datapoints.length - 1]?.end?.toISOString();
+                console.log(item); 
+                return (<Link as={RouterLink} to="/details" state={{cycle: item?.[0], run: item?.[1], from: start, to: end}}>
                   <Text style={{color: item[item?.length-1] === 'Failed' ? Colors.Text.Critical.Default : Colors.Text.Success.Default}}>{item.slice(0, 3).join(' | ')}</Text>
-                </Link>
+                </Link>)}
               )}
             </Flex>
           </DataTable.Cell>
@@ -442,13 +444,11 @@ export const LandingPage = () => {
       accessor: row => {
         const passedLength = row.crs.map(item => item?.[item?.length - 1]).filter(item => item === "Passed" && item).length;
         const totalLength = row.crs.length;
-        console.log(Math.floor(0 * 10000))
-        return (Math.floor(passedLength * 10000 ) / 100 / totalLength);
+        return (Math.floor((passedLength / totalLength) * 10000) / 100 );
       },
       autoWidth: true,
       ratioWidth: 1,
       cell: row => {
-        console.log(row)
         return (
           <DataTable.Cell>
             {row.value >= 0 ? (
@@ -482,6 +482,7 @@ export const LandingPage = () => {
 
   return (
     <Flex width={'100%'} flexDirection="column" justifyContent="center" gap={16}>
+      <Heading level={1}>Performace Test Dashboard</Heading>
       <Container>
         <Flex justifyContent="space-between" alignItems="center">
           <FilterBar onFilterChange={() => {}}>
@@ -546,7 +547,7 @@ export const LandingPage = () => {
                   
                   {({ absoluteValue }: InnerParams) => (
                     <Flex flexDirection='column'> 
-                      <Text>Total: {absoluteValue}runs</Text>
+                      <Text>Total: {absoluteValue} runs</Text>
                       <Text>Smallet VU: {smallestVU}</Text>
                       <Text>Largest VU: {largestVU}</Text>
                     </Flex>
@@ -561,21 +562,25 @@ export const LandingPage = () => {
         </Flex>
       </Container>
       <Container>
-        {table.isLoading && <ProgressCircle />}
-        {table.data && (
-          <DataTable 
-            data={filteredTableData} 
-            columns={columns}
-            sortable
-            variant={{
-              rowDensity: 'default',
-              rowSeparation: 'zebraStripes',
-              verticalDividers: true,
-              contained: true,
-            }}
-          >
-          </DataTable>
-        )}
+        <Heading level={2}>Transactions</Heading>
+        <Flex width='100%' marginTop={16} justifyContent='center'>
+          {table.isLoading && <ProgressCircle />}
+          {table.data && (
+            <DataTable 
+              data={filteredTableData} 
+              columns={columns}
+              sortable
+              fullWidth
+              variant={{
+                rowDensity: 'default',
+                rowSeparation: 'zebraStripes',
+                verticalDividers: true,
+                contained: true,
+              }}
+            >
+            </DataTable>
+          )}
+        </Flex>
       </Container>
     </Flex>
   );

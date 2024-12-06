@@ -9,6 +9,11 @@ import { InternetIcon } from "@dynatrace/strato-icons";
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { useDocContext } from "../components/DocProvider";
 import { Colors } from "@dynatrace/strato-design-tokens";
+import {
+  ToastContainer,
+  ToastOptions,
+  showToast,
+} from '@dynatrace/strato-components-preview/notifications';
 
 interface ExtendedTimeseries extends Timeseries {
   name: string[];
@@ -20,7 +25,7 @@ export const Details = () => {
 
   const { docContent, setDocContent, updateDocContent } = useDocContext();
 
-  // console.log(run, cycle, from, to)
+  console.log(run, cycle, from, to)
 
   // const cycle = "cycle01"
   // const run = 'run07'
@@ -119,15 +124,19 @@ export const Details = () => {
       return Math.round(value * 100) / 100;
   };
 
-  const [matchedCriteria, setMatchedCriteria] = useState([]);
+  const [matchedCriteria, setMatchedCriteria] = useState<any>([]);
   const getMactchedCriteria = async () => {
-    const matchingCriteria = await docContent.find(
-      (criteria) => criteria.cycle === cycle && criteria.run === run
-    );
+    const matchingCriteria = await docContent.find((criteria) => {
+      console.log(criteria)
+      if (criteria.cycle === cycle && criteria.run === run) {
+        return criteria
+      } else {
+        return criteria.cycle === "default" && criteria.run === "default"
+      }
+    });
+    
 
-    const criteria = matchingCriteria?.criteria || docContent.find(
-      (criteria) => criteria.cycle === "default" && criteria.run === "default"
-    )?.criteria;
+    const criteria = matchingCriteria?.criteria
 
     setMatchedCriteria(criteria);
   }
@@ -158,29 +167,30 @@ export const Details = () => {
         );
       } else {
         // If not found, add a new item
-        return [
-          ...prevState,
-          {
-            cycle: cycle,
-            run: run,
-            criteria: {
-              [key]: newValue, // Set the key-value pair in criteria for the new item
-            },
-          },
-        ];
+        showToast({
+          title: 'NO CRITERIA DETECTED',
+          type: 'critical',
+          message: (
+            <Text>
+              No criteria detected in list, Please add in Criteria List
+            </Text>
+          ),
+        })
+
+        return prevState
       }
     });
   };
 
   const rowData = [
     {
-      metric: "Failure Rate(%)",
+      metric: "Failure Rate (%)",
       target: matchedCriteria?.["Failure Rate"],
       result: calculateAverage(specificErrorPercentage, "error"),
       status: ''
     },
     {
-      metric: "Response Time (second)",
+      metric: "Response Time (sec)",
       target: matchedCriteria?.["Response Time"],
       result: calculateAverage(timeData, "meantime"),
       status: ''
@@ -201,9 +211,20 @@ export const Details = () => {
 
   const columns: TableColumn[] = [
     {
-      header: "Metric",
+      header: "Metric (unit)",
       accessor: 'metric',
-      ratioWidth:1
+      ratioWidth:1,
+      cell: row => { 
+        const metric = row.value.split(/ (?!.* )/)?.[0];
+        const unit = row.value.split(/ (?!.* )/)?.[1]
+        return (
+          <DataTable.Cell>
+            <Flex flexDirection="row" justifyContent="space-between">
+              <Text>{metric}</Text> <Text>{unit}</Text>
+            </Flex>
+          </DataTable.Cell>
+        )
+      }
     },
     {
       header: 'Target',
@@ -212,7 +233,7 @@ export const Details = () => {
       cell: (row) => {
         return(
           <DataTable.Cell>
-            <NumberInput value={row.value} onChange={e => handleChange(cycle, run, row.row.original.metric, Number(e))}/>
+            <NumberInput value={row.value} onChange={e => handleChange(cycle, run, row.row.original.metric.split(/ (?!.* )/)?.[0], Number(e))}/>
           </DataTable.Cell>
         )
       }
@@ -318,7 +339,10 @@ export const Details = () => {
                   <DataTable.DownloadData />
                 </DataTable.Toolbar>
                 </DataTable>
-                <Button color="primary" variant="accent" onClick={() => updateDocContent()}>Update</Button>
+                <Flex width={'100%'} justifyContent="end">
+                  <Button color="primary" variant="accent" onClick={() => updateDocContent()}>Update</Button>
+                </Flex>
+                <ToastContainer />
               </>
             )}
           </Flex>

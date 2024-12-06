@@ -6,7 +6,7 @@ import { ExternalLinks } from "../components/ExternalLinks";
 import { hostTagsQueryResult, processTagsQueryResult, serviceTagsQueryResult, tagsQueryResult } from "../Data/QueryResult";
 import { subHours } from "date-fns"
 import { Link as RouterLink } from 'react-router-dom';
-import { Link, List } from '@dynatrace/strato-components/typography';
+import { Heading, Link, List } from '@dynatrace/strato-components/typography';
 import { getEnvironmentUrl } from "@dynatrace-sdk/app-environment";
 import { MatchTags, MatchTagsResult } from "../components/MatchTags";
 import { useDocContext } from "../components/DocProvider";
@@ -581,104 +581,108 @@ export const CycleRun = () => {
   ];
 
   return (
-    <Container>
-      <Flex flexDirection="row" justifyContent="space-between" marginBottom={12}>
-        <FilterBar onFilterChange={() => {}}>
-          <FilterBar.Item name="cycleRun" label="Filter by Cycle|Run">
-            <TextInput
-              placeholder="Filter by Cycle|Run"
-              onChange={(e) => setCycleRunFilter(e)} // Update filter value
-            />
-          </FilterBar.Item>
-          <FilterBar.Item name="transaction" label="Filter by transaction">
-            <SelectV2 value={transactionFilter} onChange={setTransactionFilter} clearable multiple>
-              <SelectV2.Content>
-                {Array.from(new Set(rowData?.flatMap((row) => row.transactions)))?.map((transaction) => 
-                  <SelectV2.Option key={transaction} value={transaction}>
-                    {transaction}
-                  </SelectV2.Option>
-                )}
-              </SelectV2.Content>
-            </SelectV2>
-            {/* <TextInput
-              placeholder="Filter by transaction"
-              onChange={(e) => setTransactionFilter(e)} // Update filter value
-            /> */}
-          </FilterBar.Item>
-        </FilterBar>
-        <Flex>
+    <Flex width={"100%"} flexDirection="column" justifyContent="center" gap={16}>
+      <Heading level={1}>Cycle & Run</Heading>
+      <Container>
+        <Heading level={2}>Overview of all cycle & run</Heading>
+        <Flex flexDirection="row" justifyContent="space-between" marginBottom={12} marginTop={12}>
           <FilterBar onFilterChange={() => {}}>
-            <FilterBar.Item name="hosts" label="Filter by host">
-              <SelectV2 value={hostFilter} onChange={setHostFilter} clearable>
+            <FilterBar.Item name="cycleRun" label="Filter by Cycle|Run">
+              <TextInput
+                placeholder="Filter by Cycle|Run"
+                onChange={(e) => setCycleRunFilter(e)} // Update filter value
+              />
+            </FilterBar.Item>
+            <FilterBar.Item name="transaction" label="Filter by transaction">
+              <SelectV2 value={transactionFilter} onChange={setTransactionFilter} clearable multiple>
                 <SelectV2.Content>
-                  {Array.from(new Set(rowData?.flatMap((row) => row.hosts?.map((host) => host.name))))?.map((hostName) => (
-                    <SelectV2.Option key={hostName} value={hostName}>
-                      {hostName}
+                  {Array.from(new Set(rowData?.flatMap((row) => row.transactions)))?.map((transaction) => 
+                    <SelectV2.Option key={transaction} value={transaction}>
+                      {transaction}
                     </SelectV2.Option>
-                  ))}
+                  )}
                 </SelectV2.Content>
               </SelectV2>
-            </FilterBar.Item>
-            <FilterBar.Item name="processes" label="Filter by process">
-              <SelectV2 value={processFilter} onChange={setProcessFilter} clearable>
-                <SelectV2.Content>
-                  {Array.from(new Set(rowData?.flatMap((row) => row.processes?.map((process) => process.name))))?.map((processName) => (
-                    <SelectV2.Option key={processName} value={processName}>
-                      {processName}
-                    </SelectV2.Option>
-                  ))}
-                </SelectV2.Content>
-              </SelectV2>
-            </FilterBar.Item>
-            <FilterBar.Item name="services" label="Filter by service">
-              <SelectV2 value={serviceFilter} onChange={setServiceFilter} clearable>
-                <SelectV2.Content>
-                  {Array.from(new Set(rowData?.flatMap((row) => row.services?.map((service) => service.name))))?.map((serviceName) => (
-                    <SelectV2.Option key={serviceName} value={serviceName}>
-                      {serviceName}
-                    </SelectV2.Option>
-                  ))}
-                </SelectV2.Content>
-              </SelectV2>
-            </FilterBar.Item>
-            <FilterBar.Item name="passFail" label="Filter by Pass/Fail">
-              <SelectV2 value={passFailFilter} onChange={setPassFailFilter} clearable>
-                <SelectV2.Content>
-                  <SelectV2.Option key={"Passed"} value={"Passed"}>
-                    Passed
-                  </SelectV2.Option>
-                  <SelectV2.Option key={"Failed"} value={"Failed"}>
-                    Failed
-                  </SelectV2.Option>
-                </SelectV2.Content>
-              </SelectV2>
-            </FilterBar.Item>
-            <FilterBar.Item name="time" label="Time">
-              <TimeframeSelector value={time} onChange={setTime} />
+              {/* <TextInput
+                placeholder="Filter by transaction"
+                onChange={(e) => setTransactionFilter(e)} // Update filter value
+              /> */}
             </FilterBar.Item>
           </FilterBar>
+          <Flex>
+            <FilterBar onFilterChange={() => {}}>
+              <FilterBar.Item name="hosts" label="Filter by host">
+                <SelectV2 value={hostFilter} onChange={setHostFilter} clearable>
+                  <SelectV2.Content>
+                    {Array.from(new Set(rowData?.flatMap((row) => row.hosts?.map((host) => host.name))))?.map((hostName) => (
+                      <SelectV2.Option key={hostName} value={hostName}>
+                        {hostName}
+                      </SelectV2.Option>
+                    ))}
+                  </SelectV2.Content>
+                </SelectV2>
+              </FilterBar.Item>
+              <FilterBar.Item name="processes" label="Filter by process">
+                <SelectV2 value={processFilter} onChange={setProcessFilter} clearable>
+                  <SelectV2.Content>
+                    {Array.from(new Set(rowData?.flatMap((row) => row.processes?.map((process) => process.name))))?.map((processName) => (
+                      <SelectV2.Option key={processName} value={processName}>
+                        {processName}
+                      </SelectV2.Option>
+                    ))}
+                  </SelectV2.Content>
+                </SelectV2>
+              </FilterBar.Item>
+              <FilterBar.Item name="services" label="Filter by service">
+                <SelectV2 value={serviceFilter} onChange={setServiceFilter} clearable>
+                  <SelectV2.Content>
+                    {Array.from(new Set(rowData?.flatMap((row) => row.services?.map((service) => service.name))))?.map((serviceName) => (
+                      <SelectV2.Option key={serviceName} value={serviceName}>
+                        {serviceName}
+                      </SelectV2.Option>
+                    ))}
+                  </SelectV2.Content>
+                </SelectV2>
+              </FilterBar.Item>
+              <FilterBar.Item name="passFail" label="Filter by Pass/Fail">
+                <SelectV2 value={passFailFilter} onChange={setPassFailFilter} clearable>
+                  <SelectV2.Content>
+                    <SelectV2.Option key={"Passed"} value={"Passed"}>
+                      Passed
+                    </SelectV2.Option>
+                    <SelectV2.Option key={"Failed"} value={"Failed"}>
+                      Failed
+                    </SelectV2.Option>
+                  </SelectV2.Content>
+                </SelectV2>
+              </FilterBar.Item>
+              <FilterBar.Item name="time" label="Time">
+                <TimeframeSelector value={time} onChange={setTime} />
+              </FilterBar.Item>
+            </FilterBar>
+          </Flex>
         </Flex>
-      </Flex>
-      
-      
-      {loading && <ProgressCircle/>}
-      {!loading && <DataTable 
-        data={filteredData} 
-        // data={rowData}
-        columns={columns}
-        sortable
-        variant={{
-          rowDensity: 'default',
-          rowSeparation: 'zebraStripes',
-          verticalDividers: true,
-          contained: true,
-        }}
-      >
-          <DataTable.Toolbar>
-            <DataTable.DownloadData />
-          </DataTable.Toolbar>
-          <DataTable.Pagination />
-      </DataTable>}
-    </Container>
+        
+        
+        {loading && <ProgressCircle/>}
+        {!loading && <DataTable 
+          data={filteredData} 
+          // data={rowData}
+          columns={columns}
+          sortable
+          variant={{
+            rowDensity: 'default',
+            rowSeparation: 'zebraStripes',
+            verticalDividers: true,
+            contained: true,
+          }}
+        >
+            <DataTable.Toolbar>
+              <DataTable.DownloadData />
+            </DataTable.Toolbar>
+            <DataTable.Pagination />
+        </DataTable>}
+      </Container>
+    </Flex>
   )
 }

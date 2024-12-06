@@ -3,7 +3,7 @@ export const MatchTags = (props) => {
     props.queryResult.data?.records.forEach(record => {
       if (record?.tags && Array.isArray(record?.tags)) {
         for (const tag of record.tags) {
-          if (tag && typeof tag === 'string' && props.row.some(transaction => {
+          if (tag && typeof tag === 'string' && props.row?.some(transaction => {
             const tagValue = tag.split(":");
             return tagValue[0] === "Transaction" &&  tagValue[tagValue?.length - 1] === transaction;
           })) {
@@ -21,7 +21,7 @@ export const MatchTagsResult = (props) => {
     props.queryResult.result?.records.forEach(record => {
       if (record?.tags && Array.isArray(record?.tags)) {
         for (const tag of record.tags) {
-          if (tag && typeof tag === 'string' && props.row.some(transaction => {
+          if (tag && typeof tag === 'string' && props.row?.some(transaction => {
             const tagValue = tag.split(":");
             return tagValue[0] === "Transaction" &&  tagValue[tagValue?.length - 1] === transaction;
           })) {
@@ -39,7 +39,7 @@ export const MatchTagsWithTags = (props) => {
     props.queryResult.data?.records.forEach(record => {
       if (record?.tags && Array.isArray(record?.tags)) {
         for (const tag of record.tags) {
-          if (tag && typeof tag === 'string' && props.row.some(transaction => {
+          if (tag && typeof tag === 'string' && props.row?.some(transaction => {
             const tagValue = tag.split(":");
             return tagValue[0] === "Transaction" && tagValue[tagValue?.length - 1] === transaction;
           })) {
