@@ -544,7 +544,6 @@ export const LandingPage = () => {
             {donut.data && (
               <DonutChart data={donutData} height={400}>
                 <DonutChart.Inner>
-                  
                   {({ absoluteValue }: InnerParams) => (
                     <Flex flexDirection='column'> 
                       <Text>Total: {absoluteValue} runs</Text>
@@ -552,7 +551,6 @@ export const LandingPage = () => {
                       <Text>Largest VU: {largestVU}</Text>
                     </Flex>
                   )}
-                  
                 </DonutChart.Inner>
                 <DonutChart.Legend position='bottom' />
               </DonutChart>
